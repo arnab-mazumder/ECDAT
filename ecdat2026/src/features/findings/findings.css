@@ -1,0 +1,758 @@
+/* =========================
+   FINDINGS PAGE
+========================= */
+
+.findings-page {
+  width: 100%;
+  min-height: 100%;
+  background: #f5f6f4;
+}
+
+
+/* =========================
+   TOP HEADER
+========================= */
+
+.findings-topbar {
+  height: 66px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 30px;
+
+  background: #ffffff;
+
+  border-bottom: 1px solid #d8ddda;
+
+  box-sizing: border-box;
+}
+
+.findings-topbar h1 {
+  margin: 0;
+
+  font-size: 1.15rem;
+  font-weight: 700;
+
+  color: var(--text-main);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-button,
+.run-scan-button {
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 16px;
+
+  border-radius: 3px;
+
+  font-size: 0.75rem;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.export-button {
+  background: #ffffff;
+  color: var(--text-main);
+
+  border: 1px solid #cfd5d1;
+}
+
+.run-scan-button {
+  background: #10201c;
+  color: #ffffff;
+
+  border: 1px solid #10201c;
+
+  font-weight: 600;
+}
+
+
+/* =========================
+   MAIN CONTENT
+========================= */
+
+.findings-content {
+  width: 100%;
+  padding: 32px 30px 40px;
+
+  box-sizing: border-box;
+}
+
+
+/* =========================
+   SCAN RESULTS HEADER
+========================= */
+
+.scan-results-header {
+  margin-bottom: 22px;
+}
+
+.scan-results-header h2 {
+  margin: 0 0 7px;
+
+  font-size: 1.35rem;
+  font-weight: 700;
+
+  color: var(--text-main);
+}
+
+.scan-results-header p {
+  margin: 0;
+
+  font-size: 0.78rem;
+
+  color: var(--text-muted);
+}
+
+.scan-target {
+  display: inline-block;
+
+  padding: 4px 7px;
+  margin-left: 2px;
+
+  font-family: monospace;
+
+  color: var(--text-main);
+
+  background: #f3f4f3;
+
+  border: 1px solid #dce0de;
+  border-radius: 2px;
+}
+
+
+/* =========================
+   SUMMARY CARDS
+========================= */
+
+.findings-summary-grid {
+  display: grid;
+
+  grid-template-columns: 230px minmax(0, 1fr) 230px;
+
+  gap: 14px;
+
+  margin-bottom: 28px;
+}
+
+.risk-card,
+.severity-card,
+.scan-details-card {
+  min-height: 154px;
+
+  padding: 16px;
+
+  background: #ffffff;
+
+  border: 1px solid #d8ddda;
+  border-radius: 4px;
+
+  box-sizing: border-box;
+}
+
+.card-title {
+  margin: 0 0 18px;
+
+  font-size: 0.65rem;
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+
+  color: #46514c;
+}
+
+
+/* =========================
+   RISK CARD
+========================= */
+
+.risk-score {
+  display: flex;
+  align-items: baseline;
+
+  gap: 5px;
+
+  margin-bottom: 16px;
+}
+
+.risk-number {
+  font-size: 2rem;
+  line-height: 1;
+
+  font-weight: 800;
+
+  color: var(--color-critical);
+}
+
+.risk-total {
+  font-size: 0.72rem;
+
+  color: var(--text-muted);
+}
+
+.risk-level {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  font-size: 0.66rem;
+  font-weight: 700;
+
+  color: var(--color-critical);
+}
+
+.risk-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: var(--color-critical);
+}
+
+
+/* =========================
+   SEVERITY BREAKDOWN
+========================= */
+
+.severity-grid {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 8px;
+}
+
+.severity-box {
+  height: 82px;
+
+  padding: 12px 12px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  gap: 7px;
+
+  border: 1px solid;
+
+  box-sizing: border-box;
+}
+
+.severity-box strong {
+  font-size: 1.1rem;
+  line-height: 1;
+
+  font-weight: 700;
+}
+
+.severity-box span {
+  font-size: 0.68rem;
+
+  color: var(--text-muted);
+}
+
+.severity-box.critical {
+  background: #fcf5f4;
+  border-color: #efdcd9;
+}
+
+.severity-box.high {
+  background: #faf8f6;
+  border-color: #e9e1d8;
+}
+
+.severity-box.medium {
+  background: #f1f7f5;
+  border-color: #d7e5e0;
+}
+
+.severity-box.low {
+  background: #f4f4f3;
+  border-color: #dededb;
+}
+
+.severity-box.critical strong {
+  color: var(--color-critical);
+}
+
+.severity-box.high strong {
+  color: var(--color-high);
+}
+
+.severity-box.medium strong {
+  color: var(--color-medium);
+}
+
+.severity-box.low strong {
+  color: var(--color-low);
+}
+
+
+/* =========================
+   SCAN DETAILS
+========================= */
+
+.scan-details-card {
+  padding: 16px;
+}
+
+.scan-details-card .card-title {
+  margin-left: 2px;
+}
+
+.scan-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 8px 2px;
+
+  font-size: 0.7rem;
+
+  border-bottom: 1px solid #e6e9e7;
+}
+
+.scan-detail-row:last-child {
+  border-bottom: none;
+}
+
+.scan-detail-row span {
+  color: var(--text-muted);
+}
+
+.scan-detail-row strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+
+/* =========================
+   FINDINGS LIST
+========================= */
+
+.findings-list-section {
+  margin-top: 0;
+}
+
+
+/* =========================
+   FILTER BAR
+========================= */
+
+.findings-filters {
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 10px;
+
+  background: #f4f5f4;
+
+  border: 1px solid #d8ddda;
+  border-bottom: none;
+
+  border-radius: 4px 4px 0 0;
+
+  box-sizing: border-box;
+}
+
+.findings-search {
+  width: 390px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 10px;
+
+  background: #ffffff;
+
+  border: 1px solid #cfd5d1;
+  border-radius: 2px;
+
+  box-sizing: border-box;
+}
+
+.search-icon {
+  width: 14px;
+  height: 14px;
+
+  flex-shrink: 0;
+
+  color: var(--text-muted);
+}
+
+.findings-search input {
+  width: 100%;
+  height: 100%;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  font-size: 0.72rem;
+
+  color: var(--text-main);
+}
+
+.filter-spacer {
+  flex: 1;
+}
+
+.findings-filter-select,
+.filter-button,
+.risk-score-filter {
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 12px;
+
+  background: #ffffff;
+
+  border: 1px solid #cfd5d1;
+  border-radius: 2px;
+
+  font-size: 0.7rem;
+
+  color: var(--text-main);
+
+  cursor: pointer;
+
+  white-space: nowrap;
+}
+
+
+/* =========================
+   TABLE CARD
+========================= */
+
+.findings-table-card {
+  width: 100%;
+
+  overflow-x: auto;
+
+  background: #ffffff;
+
+  border: 1px solid #d8ddda;
+  border-radius: 0 0 4px 4px;
+
+  box-sizing: border-box;
+}
+
+
+/* =========================
+   TABLE
+========================= */
+
+.findings-table {
+  width: 100%;
+
+  min-width: 1000px;
+
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+
+/* TABLE COLUMN WIDTHS */
+
+.findings-table th:nth-child(1),
+.findings-table td:nth-child(1) {
+  width: 10%;
+}
+
+.findings-table th:nth-child(2),
+.findings-table td:nth-child(2) {
+  width: 12%;
+}
+
+.findings-table th:nth-child(3),
+.findings-table td:nth-child(3) {
+  width: 20%;
+}
+
+.findings-table th:nth-child(4),
+.findings-table td:nth-child(4) {
+  width: 16%;
+}
+
+.findings-table th:nth-child(5),
+.findings-table td:nth-child(5) {
+  width: 11%;
+}
+
+.findings-table th:nth-child(6),
+.findings-table td:nth-child(6) {
+  width: 11%;
+}
+
+.findings-table th:nth-child(7),
+.findings-table td:nth-child(7) {
+  width: 20%;
+}
+
+
+/* TABLE HEADER */
+
+.findings-table th {
+  height: 46px;
+
+  padding: 0 14px;
+
+  text-align: left;
+
+  background: #e8eae8;
+
+  border-bottom: 1px solid #d4d8d5;
+
+  color: #46514c;
+
+  font-size: 0.62rem;
+  font-weight: 700;
+
+  letter-spacing: 0.05em;
+
+  white-space: nowrap;
+
+  box-sizing: border-box;
+}
+
+
+/* TABLE ROWS */
+
+.findings-table td {
+  height: 38px;
+
+  padding: 0 14px;
+
+  border-bottom: 1px solid #e1e4e2;
+
+  font-size: 0.7rem;
+
+  color: #3f4944;
+
+  vertical-align: middle;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  box-sizing: border-box;
+}
+
+.findings-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.algorithm-cell {
+  font-weight: 500;
+}
+
+.location-cell,
+.recommendation-cell {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+/* =========================
+   SEVERITY BADGES
+========================= */
+
+.severity-badge {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-width: 62px;
+  height: 27px;
+
+  padding: 0 8px;
+
+  font-size: 0.6rem;
+  font-weight: 700;
+
+  border-radius: 1px;
+
+  box-sizing: border-box;
+}
+
+.severity-critical {
+  background: #f7e8e6;
+  color: #9d382f;
+}
+
+.severity-high {
+  background: #f2eeee;
+  color: #76534e;
+}
+
+.severity-medium {
+  background: #edf5f2;
+  color: #4e746b;
+}
+
+.severity-low {
+  background: #eeeeec;
+  color: #626a66;
+}
+
+
+/* =========================
+   RISK SCORE
+========================= */
+
+.risk-score-cell {
+  font-weight: 600;
+}
+
+.high-risk-score {
+  color: var(--color-critical) !important;
+}
+
+
+/* =========================
+   TABLE FOOTER
+========================= */
+
+.findings-table-footer {
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 10px;
+
+  border-top: 1px solid #d8ddda;
+
+  box-sizing: border-box;
+
+  font-size: 0.68rem;
+
+  color: var(--text-muted);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.pagination-button {
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  background: #ffffff;
+
+  border: 1px solid #d3d8d5;
+  border-radius: 2px;
+
+  color: var(--text-main);
+
+  font-size: 18px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.pagination-text {
+  min-width: 68px;
+
+  text-align: center;
+
+  font-size: 0.68rem;
+
+  color: var(--text-muted);
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 1100px) {
+  .findings-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .findings-topbar {
+    padding: 0 15px;
+  }
+
+  .findings-content {
+    padding: 25px 15px;
+  }
+
+  .findings-filters {
+    height: auto;
+    min-height: 52px;
+
+    flex-wrap: wrap;
+
+    padding: 8px;
+  }
+
+  .findings-search {
+    width: 100%;
+  }
+
+  .filter-spacer {
+    display: none;
+  }
+
+  .severity-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .findings-table-footer {
+    height: auto;
+
+    min-height: 52px;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+
+    padding: 10px;
+  }
+}

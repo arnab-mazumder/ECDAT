@@ -1,0 +1,29 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary & build artifacts
+*.egg-info/
+dist/
+build/
+
+# Certificate private key files generated during testing (preserve public certs if needed, ignore private keys)
+tests/sample_certs/*.key
+
+# Temporary test clone directories
+ecdat_repo_*
