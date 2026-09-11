@@ -6,6 +6,8 @@ export const metadata = {
   description: "Enterprise Cryptographic Discovery & Analysis Tool",
   icons: {
     icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 

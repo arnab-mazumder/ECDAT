@@ -225,7 +225,7 @@ def handle_scan_github(github_url):
     
     try:
         subprocess.run(
-            ["git", "clone", "--depth", "1", "--single-branch", "--no-tags", github_url, clone_target],
+            ["git", "clone", "--depth", "1", "--single-branch", "--no-tags", "--no-progress", github_url, clone_target],
             check=True,
             capture_output=True,
             timeout=300,

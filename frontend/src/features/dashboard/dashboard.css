@@ -133,19 +133,19 @@
 }
 
 .bar-critical {
-  background-color: #c92a2a;
+  background-color: #dc2626;
 }
 
 .bar-high {
-  background-color: #8c4a4a;
+  background-color: #ea580c;
 }
 
 .bar-medium {
-  background-color: #787f7b;
+  background-color: #f59e0b;
 }
 
 .bar-low {
-  background-color: #424945;
+  background-color: #16a34a;
 }
 
 /* Distribution Legend */
@@ -170,19 +170,19 @@
 }
 
 .dot-critical {
-  background-color: #c92a2a;
+  background-color: #dc2626;
 }
 
 .dot-high {
-  background-color: #8c4a4a;
+  background-color: #ea580c;
 }
 
 .dot-medium {
-  background-color: #787f7b;
+  background-color: #f59e0b;
 }
 
 .dot-low {
-  background-color: #424945;
+  background-color: #16a34a;
 }
 
 .legend-text {

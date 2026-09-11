@@ -608,23 +608,23 @@
 }
 
 .severity-critical {
-  background: #f7e8e6;
-  color: #9d382f;
+  background: #fef2f2;
+  color: #991b1b;
 }
 
 .severity-high {
-  background: #f2eeee;
-  color: #76534e;
+  background: #fff7ed;
+  color: #9a3412;
 }
 
 .severity-medium {
-  background: #edf5f2;
-  color: #4e746b;
+  background: #fffbeb;
+  color: #92400e;
 }
 
 .severity-low {
-  background: #eeeeec;
-  color: #626a66;
+  background: #f0fdf4;
+  color: #166534;
 }
 
 

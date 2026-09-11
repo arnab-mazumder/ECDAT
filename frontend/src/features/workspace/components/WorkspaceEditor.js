@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileCode, FileText, X, AlertCircle, CheckCircle2, GitCompare, Code2 } from "lucide-react";
 
 export default function WorkspaceEditor({
@@ -17,7 +17,31 @@ export default function WorkspaceEditor({
   finding,
   isRemediated,
 }) {
-  const [viewMode, setViewMode] = useState("code"); // "code" | "diff"
+  const [viewMode, setViewMode] = useState("code");
+  const tabsRef = useRef(null);
+  const lineNumbersRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Horizontal wheel scroll for file tabs
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const handler = (e) => {
+      if (Math.abs(e.deltaY) > 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
+
+  // Sync line numbers scroll with textarea scroll
+  const handleTextareaScroll = useCallback(() => {
+    if (textareaRef.current && lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  }, []);
 
   if (!fileData) {
     return (
@@ -33,13 +57,10 @@ export default function WorkspaceEditor({
   const { language = "Python", encoding = "UTF-8" } = fileData;
   const issueLine = finding && finding.fileId === activeTabId ? finding.line : null;
 
-  // Split string into lines array
   const lines = currentContent ? currentContent.split("\n") : [];
   const originalLines = originalContent ? originalContent.split("\n") : [];
 
-  // Render Diff View
   const renderDiffView = () => {
-    // Basic line-by-line diff between original and current content
     const maxLines = Math.max(originalLines.length, lines.length);
     const diffRows = [];
 
@@ -81,7 +102,7 @@ export default function WorkspaceEditor({
     <div className="workspace-editor-container">
       {/* Editor Tab Bar */}
       <div className="editor-tabs-bar">
-        <div className="tabs-left-scroll">
+        <div className="tabs-left-scroll" ref={tabsRef}>
           {openTabs.map((tab) => {
             const isActive = tab.id === activeTabId;
             const isPython = tab.name.endsWith(".py");
@@ -139,7 +160,7 @@ export default function WorkspaceEditor({
       ) : (
         <div className="editor-body">
           {/* Line Numbers Column */}
-          <div className="editor-line-numbers">
+          <div className="editor-line-numbers" ref={lineNumbersRef}>
             {lines.map((_, index) => {
               const lineNum = index + 1;
               const hasIssue = lineNum === issueLine && !isRemediated;
@@ -156,9 +177,11 @@ export default function WorkspaceEditor({
 
           {/* Live Editable Textarea */}
           <textarea
+            ref={textareaRef}
             className="live-editor-textarea"
             value={currentContent}
             onChange={(e) => onCodeChange(e.target.value)}
+            onScroll={handleTextareaScroll}
             spellCheck={false}
           />
         </div>

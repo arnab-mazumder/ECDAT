@@ -9,6 +9,7 @@ export default function ReportsPage() {
   const router = useRouter();
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [activeScan, setActiveScan] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchReports = async () => {
@@ -19,6 +20,9 @@ export default function ReportsPage() {
       if (json.success && json.reports) {
         setReports(json.reports);
         setSelectedReport(json.reports[0]);
+        if (json.activeScan) {
+          setActiveScan(json.activeScan);
+        }
       }
     } catch (err) {
       console.error("Failed to load reports:", err);
@@ -121,7 +125,7 @@ export default function ReportsPage() {
               ))}
             </div>
 
-            <ReportDetails report={selectedReport} />
+            <ReportDetails report={selectedReport} activeScan={activeScan} />
           </div>
         )}
       </div>

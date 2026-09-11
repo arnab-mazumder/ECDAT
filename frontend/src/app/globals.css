@@ -3,9 +3,9 @@
    ========================= */
 
 :root {
-  --sidebar-bg: #111614;
-  --sidebar-active-bg: #222a26;
-  --sidebar-text: #8a958f;
+  --sidebar-bg: #828385;
+  --sidebar-active-bg: #6e7072;
+  --sidebar-text: #d4d5d6;
   --sidebar-text-active: #ffffff;
   
   --bg-main: #f3f5f3;
@@ -15,10 +15,10 @@
   --text-main: #111614;
   --text-muted: #68716d;
   
-  --color-critical: #c92a2a;
-  --color-high: #8c4a4a;
-  --color-medium: #787f7b;
-  --color-low: #424945;
+  --color-critical: #dc2626;
+  --color-high: #ea580c;
+  --color-medium: #f59e0b;
+  --color-low: #16a34a;
 }
 
 * {
