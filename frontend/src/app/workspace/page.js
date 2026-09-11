@@ -139,7 +139,7 @@ export default function WorkspacePage() {
             filePath: normFile,
             line: f.line || 1,
             fileLocation: `${normFile}:${f.line || 1}`,
-<<<<<<< HEAD
+
             vulnerableCode: f.original_code || f.original_snippet || "",
             suggestedCode: f.suggested_fix || f.replacement_code || "",
             mosca: {
@@ -151,11 +151,11 @@ export default function WorkspacePage() {
               equation: `Equation: Data Lifetime (${X}y) + Migration (${Y}y) vs Threat Horizon (${Z}y) [Risk Gap: ${gap > 0 ? "+" : ""}${gap}y]`,
               explanation: f.rationale || `Cryptographic primitive ${f.algorithm} is vulnerable to quantum or classical cryptanalysis. Required protection lifetime (${reqLife} years) ${isBreached ? "exceeds" : "is within"} estimated threat horizon (${Z} years).`,
             },
-=======
+
             vulnerableCode: f.original_code || "",
             suggestedCode: f.suggested_fix || "",
             mosca: mosca,
->>>>>>> 4e31606d772fc0ae4a2df2dc0715935b67f47ad6
+
             remediation: {
               recommendation: f.recommendation || "Upgrade to PQC algorithm",
               standardBadge: f.recommendation_standard || "NIST FIPS",
