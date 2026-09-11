@@ -16,6 +16,11 @@ export default function FindingsPage() {
   const router = useRouter();
   const [scanData, setScanData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [severity, setSeverity] = useState("");
+  const [type, setType] = useState("");
+  const [algorithm, setAlgorithm] = useState("");
+  const [riskScore, setRiskScore] = useState("");
 
   const fetchFindings = async () => {
     try {
@@ -103,6 +108,40 @@ export default function FindingsPage() {
     },
     status: f.resolved ? "Resolved" : "Open",
   }));
+  const filteredFindings = findingsList.filter((finding) => {
+    const searchText = search.toLowerCase();
+  
+    const matchesSearch =
+      finding.algorithm?.toLowerCase().includes(searchText) ||
+      finding.severity?.toLowerCase().includes(searchText) ||
+      finding.file?.toLowerCase().includes(searchText) ||
+      finding.artifactType?.toLowerCase().includes(searchText) ||
+      finding.recommendation?.algorithm?.toLowerCase().includes(searchText);
+  
+    const matchesSeverity =
+      severity === "" || finding.severity === severity;
+      const matchesType =
+  type === "" || finding.artifactType === type;
+
+  const matchesAlgorithm =
+  algorithm === "" ||
+  finding.algorithm?.toLowerCase() === algorithm.toLowerCase();
+
+  const matchesRiskScore = (() => {
+    if (riskScore === "") return true;
+  
+    const [min, max] = riskScore.split("-").map(Number);
+  
+    return finding.riskScore >= min && finding.riskScore <= max;
+  })();
+  
+  return (
+    matchesSearch &&
+    matchesSeverity &&
+    matchesType &&
+    matchesAlgorithm &&
+    matchesRiskScore
+  );  });
 
   const readinessScore = scanData.readiness_score ?? 0;
   const totalFindings = findingsList.length;
@@ -169,8 +208,19 @@ export default function FindingsPage() {
 
         {/* Findings Table */}
         <div className="findings-list-section">
-          <FindingsFilters />
-          <FindingsTable findings={findingsList} />
+        <FindingsFilters
+  search={search}
+  setSearch={setSearch}
+  severity={severity}
+  setSeverity={setSeverity}
+  type={type}
+  setType={setType}
+  algorithm={algorithm}
+  setAlgorithm={setAlgorithm}
+  riskScore={riskScore}
+  setRiskScore={setRiskScore}
+/>
+<FindingsTable findings={filteredFindings} />
         </div>
       </div>
     </div>

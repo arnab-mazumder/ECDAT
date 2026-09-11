@@ -5,7 +5,7 @@ import React from "react";
 export default function ScanDetails({
   filesScanned,
   totalFindings,
-  duration,
+
 }) {
   return (
     <div className="scan-details-card">
@@ -21,10 +21,7 @@ export default function ScanDetails({
         <strong>{totalFindings}</strong>
       </div>
 
-      <div className="scan-detail-row">
-        <span>Duration</span>
-        <strong>{duration}s</strong>
-      </div>
+    
     </div>
   );
 }
