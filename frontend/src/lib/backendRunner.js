@@ -10,6 +10,8 @@ const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_U
 const BACKEND_DIR = path.resolve(process.cwd(), "..", "backend");
 const BRIDGE_SCRIPT = path.join(BACKEND_DIR, "run_bridge.py");
 
+const PYTHON_CMD = process.env.PYTHON_CMD || process.env.PYTHON_PATH || (process.platform === "win32" ? "python" : "python3");
+
 export async function runBackendCommand(command, args = [], stdinData = null) {
   // ── Mode 1: FastAPI HTTP Server ─────────────────────────────────────────
   // Active when BACKEND_URL is set (e.g. http://localhost:8000).
@@ -89,7 +91,7 @@ export async function runBackendCommand(command, args = [], stdinData = null) {
       return reject(new Error(`Backend bridge script not found at ${BRIDGE_SCRIPT}`));
     }
 
-    console.log(`[backendRunner] child_process → ${command}`, args[0] ? `(${path.basename(String(args[0]))})` : "");
+    console.log(`[backendRunner] child_process → ${command} using ${PYTHON_CMD}`, args[0] ? `(${path.basename(String(args[0]))})` : "");
 
     const processEnv = {
       ...process.env,
@@ -98,7 +100,7 @@ export async function runBackendCommand(command, args = [], stdinData = null) {
 
     const cmdArgs = [BRIDGE_SCRIPT, command, ...args];
     const child = execFile(
-      "python3",
+      PYTHON_CMD,
       cmdArgs,
       { env: processEnv, maxBuffer: 500 * 1024 * 1024 },
       (error, stdout, stderr) => {
