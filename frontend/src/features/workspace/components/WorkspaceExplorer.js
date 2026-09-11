@@ -32,6 +32,7 @@ export default function WorkspaceExplorer({
           <React.Fragment key={node.id}>
             <div
               className="tree-item"
+              title={node.name}
               style={{ paddingLeft: `${paddingLeft}px` }}
               onClick={() => onToggleFolder(node.id)}
             >
@@ -62,6 +63,7 @@ export default function WorkspaceExplorer({
         <div
           key={node.id}
           className={`tree-item ${isActive ? "active" : ""}`}
+          title={node.name}
           style={{ paddingLeft: `${paddingLeft + 16}px` }}
           onClick={() => onSelectFile(node)}
         >

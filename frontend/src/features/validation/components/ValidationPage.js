@@ -10,7 +10,6 @@ import {
   Play,
   Download,
   ShieldCheck,
-  Calculator,
   RefreshCw,
   XCircle,
   PlusCircle,
@@ -27,11 +26,6 @@ export default function ValidationPage() {
   const [scanComplete, setScanComplete] = useState(false);
   const [validated, setValidated] = useState(false);
   const [activeDiffIndex, setActiveDiffIndex] = useState(0);
-
-  // Mosca Inequality Interactive State
-  const [dataLifetimeX, setDataLifetimeX] = useState(10);
-  const [migrationTimeY, setMigrationTimeY] = useState(2);
-  const [quantumHorizonZ, setQuantumHorizonZ] = useState(10);
 
   // Fetch validation data from backend API
   const fetchValidationData = async () => {
@@ -94,10 +88,10 @@ export default function ValidationPage() {
       },
       complianceSuiteChecks: valData?.validation_checks || [],
       moscaInequality: {
-        dataLifetimeX: `${dataLifetimeX} Years`,
-        migrationTimeY: `${migrationTimeY} Years`,
-        quantumHorizonZ: `${quantumHorizonZ} Years`,
-        isBreached: dataLifetimeX + migrationTimeY > quantumHorizonZ,
+        dataLifetimeX: "10 Years",
+        migrationTimeY: "2 Years",
+        quantumHorizonZ: "10 Years",
+        isBreached: true,
       },
     };
 
@@ -117,8 +111,6 @@ export default function ValidationPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-
-  const isBreached = dataLifetimeX + migrationTimeY > quantumHorizonZ;
 
   if (loading) {
     return (
@@ -487,121 +479,6 @@ export default function ValidationPage() {
               })}
             </tbody>
           </table>
-        </div>
-
-        {/* Mosca's Theorem Risk Sandbox */}
-        <div className="val-section-card" style={{ background: "#0f172a", color: "#fff" }}>
-          <div className="mosca-widget">
-            <div>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  marginBottom: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Calculator size={20} color="#38bdf8" />
-                Mosca's Theorem Risk Inequality Sandbox
-              </div>
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "#94a3b8",
-                  margin: "0 0 20px 0",
-                  lineHeight: 1.5,
-                }}
-              >
-                If (X + Y) &gt; Z, your encryption will be broken before migration completes. Adjust parameters to simulate risk exposure windows.
-              </p>
-
-              <div style={{ display: "grid", gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: 13, color: "#cbd5e1", fontWeight: 600 }}>
-                    Data Security Lifetime (X): {dataLifetimeX} Years
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="30"
-                    value={dataLifetimeX}
-                    onChange={(e) => setDataLifetimeX(Number(e.target.value))}
-                    style={{ width: "100%", marginTop: 4, cursor: "pointer" }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: 13, color: "#cbd5e1", fontWeight: 600 }}>
-                    Migration System Time (Y): {migrationTimeY} Years
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={migrationTimeY}
-                    onChange={(e) => setMigrationTimeY(Number(e.target.value))}
-                    style={{ width: "100%", marginTop: 4, cursor: "pointer" }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: 13, color: "#cbd5e1", fontWeight: 600 }}>
-                    Quantum Threat Horizon (Z): {quantumHorizonZ} Years
-                  </label>
-                  <input
-                    type="range"
-                    min="3"
-                    max="20"
-                    value={quantumHorizonZ}
-                    onChange={(e) => setQuantumHorizonZ(Number(e.target.value))}
-                    style={{ width: "100%", marginTop: 4, cursor: "pointer" }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}
-            >
-              <div className="mosca-formula-box">
-                <div className="mosca-equation">
-                  {dataLifetimeX}y + {migrationTimeY}y = {dataLifetimeX + migrationTimeY}y
-                  {isBreached ? " > " : " ≤ "}
-                  {quantumHorizonZ}y
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: isBreached ? "#ef4444" : "#22c55e",
-                    marginTop: 8,
-                  }}
-                >
-                  {isBreached
-                    ? "CRITICAL QUANTUM BREACH EXPOSURE DETECTED"
-                    : "SAFE QUANTUM MIGRATION WINDOW"}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "#94a3b8",
-                    marginTop: 8,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {isBreached
-                    ? `Required retention (${dataLifetimeX + migrationTimeY} years) exceeds threat horizon (${quantumHorizonZ} years) by ${dataLifetimeX + migrationTimeY - quantumHorizonZ} year(s). Immediate PQC algorithm migration required!`
-                    : `Migration time and data retention fit safely within the estimated ${quantumHorizonZ}-year quantum threat window.`}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

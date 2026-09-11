@@ -8,6 +8,78 @@ import WorkspaceEditor from "@/features/workspace/components/WorkspaceEditor";
 import VulnerabilityDetails from "@/features/workspace/components/VulnerabilityDetails";
 import "@/features/workspace/workspace.css";
 
+function formatBreadcrumbPath(filePath, maxLen = 36) {
+  if (!filePath) return "No file open";
+  const normalized = filePath.replace(/\\/g, "/");
+  const segments = normalized.split("/").filter(Boolean);
+  if (normalized.length <= maxLen || segments.length <= 2) {
+    return normalized;
+  }
+  return `${segments[0]}/.../${segments[segments.length - 1]}`;
+}
+
+function computeDynamicMosca(f) {
+  let X = f._X ?? f.data_lifetime;
+  let Y = f._Y ?? f.migration_time;
+  let Z = f._Z ?? f.quantum_horizon ?? 10;
+
+  const alg = (f.algorithm || "").toUpperCase();
+  const file = (f.file || "").toLowerCase();
+
+  // If X is not provided, compute based on context heuristics
+  if (X === undefined || X === null) {
+    if (file.includes("cert") || file.includes("tls") || file.includes("ssl")) {
+      X = 2;
+    } else if (file.includes("auth") || file.includes("token") || file.includes("session") || file.includes("login")) {
+      X = 3;
+    } else if (file.includes("pii") || file.includes("user") || file.includes("payment") || file.includes("bank") || file.includes("financial") || file.includes("db") || file.includes("customer")) {
+      X = 10;
+    } else if (file.includes("archived") || file.includes("vault") || file.includes("permanent") || file.includes("record")) {
+      X = 15;
+    } else if (alg.includes("RSA") || alg.includes("DSA") || alg.includes("ECDSA") || alg.includes("DH")) {
+      X = 8;
+    } else if (alg.includes("AES") || alg.includes("DES") || alg.includes("MD5") || alg.includes("SHA")) {
+      X = 5;
+    } else {
+      X = 5;
+    }
+  }
+
+  if (Y === undefined || Y === null) {
+    if (file.includes("cert")) {
+      Y = 1;
+    } else if (alg.includes("RSA") || alg.includes("ECDSA") || alg.includes("DH") || alg.includes("DSA")) {
+      Y = 3;
+    } else if (alg.includes("MD5") || alg.includes("SHA1")) {
+      Y = 1.5;
+    } else {
+      Y = 2;
+    }
+  }
+
+  const requiredLifetime = Number((X + Y).toFixed(1));
+  const threatHorizon = Number(Z.toFixed(1));
+  const gap = Number((requiredLifetime - threatHorizon).toFixed(1));
+  const isBreached = requiredLifetime > threatHorizon;
+  const verdict = isBreached ? "Vulnerable" : "Safe";
+  const inequalitySymbol = isBreached ? ">" : "≤";
+
+  return {
+    dataLifetime: X,
+    migrationTime: Y,
+    quantumHorizon: threatHorizon,
+    requiredLifetime: requiredLifetime,
+    riskGap: gap,
+    isBreached: isBreached,
+    verdict: verdict,
+    inequalitySymbol: inequalitySymbol,
+    equation: `Required Lifetime (X + Y = ${requiredLifetime}y) ${inequalitySymbol} Threat Horizon (Z = ${threatHorizon}y)`,
+    explanation: f.rationale || (isBreached
+      ? `Data shelf-life (${X}y) plus migration timeframe (${Y}y) exceeds quantum threat horizon (${threatHorizon}y) by ${gap} years (Mosca Condition Breached).`
+      : `Data shelf-life (${X}y) plus migration timeframe (${Y}y) is within the quantum threat horizon (${threatHorizon}y).`),
+  };
+}
+
 export default function WorkspacePage() {
   const router = useRouter();
   const [fileTree, setFileTree] = useState([]);
@@ -54,6 +126,9 @@ export default function WorkspacePage() {
           const gap = f.risk_gap_years ?? Math.round((reqLife - Z) * 10) / 10;
           const isBreached = gap > 0;
 
+
+          const mosca = computeDynamicMosca(f);
+
           return {
             id: f.id,
             title: `Weak ${f.algorithm} Primitive`,
@@ -64,6 +139,7 @@ export default function WorkspacePage() {
             filePath: normFile,
             line: f.line || 1,
             fileLocation: `${normFile}:${f.line || 1}`,
+<<<<<<< HEAD
             vulnerableCode: f.original_code || f.original_snippet || "",
             suggestedCode: f.suggested_fix || f.replacement_code || "",
             mosca: {
@@ -75,6 +151,11 @@ export default function WorkspacePage() {
               equation: `Equation: Data Lifetime (${X}y) + Migration (${Y}y) vs Threat Horizon (${Z}y) [Risk Gap: ${gap > 0 ? "+" : ""}${gap}y]`,
               explanation: f.rationale || `Cryptographic primitive ${f.algorithm} is vulnerable to quantum or classical cryptanalysis. Required protection lifetime (${reqLife} years) ${isBreached ? "exceeds" : "is within"} estimated threat horizon (${Z} years).`,
             },
+=======
+            vulnerableCode: f.original_code || "",
+            suggestedCode: f.suggested_fix || "",
+            mosca: mosca,
+>>>>>>> 4e31606d772fc0ae4a2df2dc0715935b67f47ad6
             remediation: {
               recommendation: f.recommendation || "Upgrade to PQC algorithm",
               standardBadge: f.recommendation_standard || "NIST FIPS",
@@ -411,13 +492,33 @@ export default function WorkspacePage() {
           <div className="workspace-breadcrumbs">
             <span className="breadcrumb-root">Workspace</span>
             <span className="breadcrumb-sep">/</span>
-            <span className="breadcrumb-file">
+            <span className="breadcrumb-file" title={activeTabId || ""}>
               <Code2 size={15} className="breadcrumb-icon" />
-              {activeTabId || "No file open"}
+              {formatBreadcrumbPath(activeTabId)}
             </span>
           </div>
+        </div>
 
-          {/* Finding Navigator Pill */}
+        {/* Right Actions Group */}
+        <div className="workspace-right-group">
+          {isCurrentFileDirty && (
+            <div className="unsaved-pill">
+              <span className="unsaved-dot" /> Unsaved
+            </div>
+          )}
+
+          {isCurrentFileDirty && (
+            <>
+              <button className="btn-action btn-blue" onClick={handleSave} title="Save edits to disk">
+                <Save size={14} /> Save
+              </button>
+              <button className="btn-action btn-ghost" onClick={handleDiscard} title="Discard edits">
+                <RotateCcw size={14} /> Discard
+              </button>
+            </>
+          )}
+
+          {/* Finding Navigator Pill - fixed to the right, exactly left of Validate button */}
           {findingsList.length > 0 && (
             <div className="finding-nav-pill">
               <button
@@ -440,26 +541,6 @@ export default function WorkspacePage() {
                 <ChevronRight size={14} />
               </button>
             </div>
-          )}
-        </div>
-
-        {/* Right Actions Group */}
-        <div className="workspace-right-group">
-          {isCurrentFileDirty && (
-            <div className="unsaved-pill">
-              <span className="unsaved-dot" /> Unsaved
-            </div>
-          )}
-
-          {isCurrentFileDirty && (
-            <>
-              <button className="btn-action btn-blue" onClick={handleSave} title="Save edits to disk">
-                <Save size={14} /> Save
-              </button>
-              <button className="btn-action btn-ghost" onClick={handleDiscard} title="Discard edits">
-                <RotateCcw size={14} /> Discard
-              </button>
-            </>
           )}
 
           <button className="btn-action btn-secondary" onClick={handleValidate} title="Validate compliance">

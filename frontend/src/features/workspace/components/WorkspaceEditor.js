@@ -20,6 +20,7 @@ export default function WorkspaceEditor({
   const [viewMode, setViewMode] = useState("code");
   const tabsRef = useRef(null);
   const lineNumbersRef = useRef(null);
+  const highlightLayerRef = useRef(null);
   const textareaRef = useRef(null);
 
   // Horizontal wheel scroll for file tabs
@@ -36,10 +37,16 @@ export default function WorkspaceEditor({
     return () => el.removeEventListener("wheel", handler);
   }, []);
 
-  // Sync line numbers scroll with textarea scroll
+  // Sync line numbers and highlight layer scroll with textarea scroll
   const handleTextareaScroll = useCallback(() => {
-    if (textareaRef.current && lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+    if (textareaRef.current) {
+      const st = textareaRef.current.scrollTop;
+      if (lineNumbersRef.current) {
+        lineNumbersRef.current.scrollTop = st;
+      }
+      if (highlightLayerRef.current) {
+        highlightLayerRef.current.scrollTop = st;
+      }
     }
   }, []);
 
@@ -175,15 +182,31 @@ export default function WorkspaceEditor({
             })}
           </div>
 
-          {/* Live Editable Textarea */}
-          <textarea
-            ref={textareaRef}
-            className="live-editor-textarea"
-            value={currentContent}
-            onChange={(e) => onCodeChange(e.target.value)}
-            onScroll={handleTextareaScroll}
-            spellCheck={false}
-          />
+          {/* Code Container with Full-Line Highlight Layer */}
+          <div className="editor-code-container">
+            <div className="editor-highlight-layer" ref={highlightLayerRef}>
+              {lines.map((_, index) => {
+                const lineNum = index + 1;
+                const hasIssue = lineNum === issueLine && !isRemediated;
+                return (
+                  <div
+                    key={lineNum}
+                    className={`editor-highlight-row ${hasIssue ? "row-has-issue" : ""}`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Live Editable Textarea */}
+            <textarea
+              ref={textareaRef}
+              className="live-editor-textarea"
+              value={currentContent}
+              onChange={(e) => onCodeChange(e.target.value)}
+              onScroll={handleTextareaScroll}
+              spellCheck={false}
+            />
+          </div>
         </div>
       )}
 
@@ -196,7 +219,10 @@ export default function WorkspaceEditor({
               <span>Fix Applied (Pending Validation)</span>
             </button>
           ) : finding ? (
-            <button className="status-issue-btn" onClick={onToggleVulnPanel}>
+            <button
+              className={`status-issue-btn severity-${(finding.severity || "medium").toLowerCase()}`}
+              onClick={onToggleVulnPanel}
+            >
               <AlertCircle size={14} />
               <span>1 Vulnerability Detected</span>
             </button>
