@@ -274,7 +274,7 @@ export default function FindingsPage() {
     <div className="findings-page">
       {/* TOP HEADER */}
       <div className="findings-topbar">
-        <h1>ECDAT Findings</h1>
+        <h1>Omnicipher Findings</h1>
 
         <div className="header-actions">
           <button className="export-button" onClick={handleExportCBOM}>
