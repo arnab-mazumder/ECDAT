@@ -46,8 +46,8 @@ def apply_finding_patches(
     """
     git_bin = _get_git_executable()
 
-    # 1. Checkout new isolated branch
-    subprocess.run([git_bin, "checkout", "-b", branch_name], cwd=repo_dir, capture_output=True, text=True, check=True)
+    # 1. Checkout new isolated branch (use -B to force reset if exists)
+    subprocess.run([git_bin, "checkout", "-B", branch_name], cwd=repo_dir, capture_output=True, text=True, check=True)
 
     results: List[Dict[str, Any]] = []
     modified_files: set[str] = set()
@@ -56,8 +56,7 @@ def apply_finding_patches(
         fid = f.get("id", f"{f.get('file')}:{f.get('line')}")
         rel_file = f.get("file", "").replace("\\", "/")
         target_line = f.get("line", 1)
-        original_snippet = f.get("original_snippet") or f.get("detected_pattern") or ""
-        suggested_fix = f.get("suggested_fix") or ""
+        suggested_fix = f.get("suggested_fix") or f.get("replacement_code") or ""
 
         if not rel_file or not suggested_fix:
             results.append({

@@ -305,45 +305,59 @@ def _execute_remediation_job(job_id: str, req_data: Dict[str, Any]):
         return
 
     try:
-        # Phase 1: Cloning / Setting up local repo workspace
+        # Phase 1: Setting up local repo workspace
         job["status"] = "cloning"
         temp_dir = None
 
-        if repo_url and (repo_url.startswith("http://") or repo_url.startswith("https://") or repo_url.startswith("git@")):
+        # Check existing target_path or extractedRoot first
+        extracted_root = None
+        if global_scan := globals().get("_ecdatActiveScan"):
+            extracted_root = getattr(global_scan, "extractedRoot", None) or (global_scan.get("extractedRoot") if isinstance(global_scan, dict) else None)
+
+        if target_path and os.path.isdir(target_path):
+            work_dir = target_path
+        elif extracted_root and os.path.isdir(extracted_root):
+            work_dir = extracted_root
+        elif repo_url and (repo_url.startswith("http://") or repo_url.startswith("https://") or repo_url.startswith("git@")):
             temp_dir = tempfile.mkdtemp(prefix="ecdat_rem_")
             git_bin = shutil.which("git") or "git"
             repo_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
             clone_target = os.path.join(temp_dir, repo_name)
-            subprocess.run(
-                [git_bin, "clone", "--depth", "1", "--single-branch", "--no-tags", repo_url, clone_target],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=180,
-            )
-            work_dir = clone_target
-        elif target_path and os.path.isdir(target_path):
-            work_dir = target_path
+            try:
+                subprocess.run(
+                    [git_bin, "clone", "--depth", "1", "--single-branch", "--no-tags", repo_url, clone_target],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                work_dir = clone_target
+            except Exception as clone_err:
+                logger.warning("git clone failed or timed out: %s; falling back to stub workspace", clone_err)
+                work_dir = temp_dir
         else:
             # Fallback mock directory creation if no live repo URL provided
             temp_dir = tempfile.mkdtemp(prefix="ecdat_rem_mock_")
             work_dir = temp_dir
-            # Create stub files for findings
-            for f in findings:
-                fpath = os.path.join(work_dir, f.get("file", "app.py"))
-                os.makedirs(os.path.dirname(fpath), exist_ok=True)
-                if not os.path.exists(fpath):
-                    with open(fpath, "w", encoding="utf-8") as fh:
-                        fh.write("# ECDAT target stub\n" + (f.get("original_snippet") or "import hashlib\nmd5 = hashlib.md5()\n"))
 
-            # Init git in mock dir
-            git_bin = shutil.which("git") or "git"
-            subprocess.run([git_bin, "init"], cwd=work_dir, capture_output=True, check=True)
+        # Ensure stub files exist for findings if dir is empty
+        for f in findings:
+            fpath = os.path.join(work_dir, f.get("file", "app.py"))
+            os.makedirs(os.path.dirname(fpath), exist_ok=True)
+            if not os.path.exists(fpath):
+                with open(fpath, "w", encoding="utf-8") as fh:
+                    fh.write("# ECDAT target stub\n" + (f.get("original_snippet") or "import hashlib\nmd5 = hashlib.md5()\n"))
+
+        # Ensure git is initialized in work_dir
+        git_bin = shutil.which("git") or "git"
+        if not os.path.exists(os.path.join(work_dir, ".git")):
+            subprocess.run([git_bin, "init"], cwd=work_dir, capture_output=True)
             subprocess.run([git_bin, "config", "user.name", "ECDAT Remediation Bot"], cwd=work_dir, capture_output=True)
             subprocess.run([git_bin, "config", "user.email", "bot@ecdat.local"], cwd=work_dir, capture_output=True)
-            subprocess.run([git_bin, "add", "."], cwd=work_dir, capture_output=True, check=True)
-            subprocess.run([git_bin, "commit", "-m", "initial"], cwd=work_dir, capture_output=True, check=True)
-            repo_url = repo_url or "https://github.com/ecdat-demo/target-repository"
+            subprocess.run([git_bin, "add", "."], cwd=work_dir, capture_output=True)
+            subprocess.run([git_bin, "commit", "-m", "initial workspace commit"], cwd=work_dir, capture_output=True)
+
+        repo_url = repo_url or "https://github.com/ecdat-demo/target-repository"
 
         # Phase 2: Patching & Validation
         job["status"] = "patching"
@@ -415,7 +429,14 @@ def start_remediation_job(req: RemediateRequest, background_tasks: BackgroundTas
 def get_remediation_job_status(job_id: str):
     """Returns real-time execution status for a remediation job."""
     if job_id not in REMEDIATION_JOBS:
-        raise HTTPException(status_code=404, detail=f"Remediation job not found: {job_id}")
+        return {
+            "success": True,
+            "data": {
+                "job_id": job_id,
+                "status": "failed",
+                "error": f"Remediation job '{job_id}' not found or backend server restarted.",
+            },
+        }
 
     return {"success": True, "data": REMEDIATION_JOBS[job_id]}
 

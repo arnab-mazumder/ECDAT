@@ -68,7 +68,8 @@ export default function FindingsPage() {
     let timer = setInterval(async () => {
       try {
         const res = await fetch(`/api/remediate/status/${remediationJobId}`);
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data || json;
         setRemediationJobData(data);
 
         // Update finding level remediationMap status
