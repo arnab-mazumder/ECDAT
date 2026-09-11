@@ -47,6 +47,13 @@ export default function WorkspacePage() {
 
         const mappedFindings = findings.map((f) => {
           const normFile = f.file.replace(/\\/g, "/");
+          const X = f.data_lifetime ?? f._X ?? 5.0;
+          const Y = f.migration_time ?? f._Y ?? 1.0;
+          const Z = f.quantum_horizon ?? f._Z ?? 10.0;
+          const reqLife = f.required_lifetime ?? Math.round((X + Y) * 10) / 10;
+          const gap = f.risk_gap_years ?? Math.round((reqLife - Z) * 10) / 10;
+          const isBreached = gap > 0;
+
           return {
             id: f.id,
             title: `Weak ${f.algorithm} Primitive`,
@@ -57,24 +64,24 @@ export default function WorkspacePage() {
             filePath: normFile,
             line: f.line || 1,
             fileLocation: `${normFile}:${f.line || 1}`,
-            vulnerableCode: f.original_code || "",
-            suggestedCode: f.suggested_fix || "",
+            vulnerableCode: f.original_code || f.original_snippet || "",
+            suggestedCode: f.suggested_fix || f.replacement_code || "",
             mosca: {
-              dataLifetime: 10,
-              migrationTime: 2,
-              requiredLifetime: 12,
-              quantumHorizon: 10,
-              verdict: f.risk_gap_years > 0 ? "Breached" : "Safe",
-              equation: `Data Lifetime + Migration vs Threat Horizon (${f.risk_gap_years || 0}y gap)`,
-              explanation: f.rationale || "Cryptographic primitive vulnerable to quantum factorization.",
+              dataLifetime: X,
+              migrationTime: Y,
+              requiredLifetime: reqLife,
+              quantumHorizon: Z,
+              verdict: isBreached ? `Breached (${reqLife}y > ${Z}y)` : `Safe (${reqLife}y ≤ ${Z}y)`,
+              equation: `Equation: Data Lifetime (${X}y) + Migration (${Y}y) vs Threat Horizon (${Z}y) [Risk Gap: ${gap > 0 ? "+" : ""}${gap}y]`,
+              explanation: f.rationale || `Cryptographic primitive ${f.algorithm} is vulnerable to quantum or classical cryptanalysis. Required protection lifetime (${reqLife} years) ${isBreached ? "exceeds" : "is within"} estimated threat horizon (${Z} years).`,
             },
             remediation: {
               recommendation: f.recommendation || "Upgrade to PQC algorithm",
               standardBadge: f.recommendation_standard || "NIST FIPS",
               rationale: f.rationale || "Migrate to quantum-safe algorithm.",
               diff: {
-                removed: f.original_code || "",
-                added: f.suggested_fix || "",
+                removed: f.original_code || f.original_snippet || "",
+                added: f.suggested_fix || f.replacement_code || "",
               },
             },
           };

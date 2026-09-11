@@ -265,6 +265,161 @@ def recalculate(req: RecalculateRequest):
     return {"success": True, "readiness_score": new_score}
 
 
+
+class RemediateRequest(BaseModel):
+    repo_url: Optional[str] = None
+    target_path: Optional[str] = None
+    finding_ids: List[str] = []
+    findings: List[Dict[str, Any]] = []
+    grouping: str = "per_file"  # "per_file" | "per_repo"
+    github_token: Optional[str] = None
+
+
+# ── In-Memory Remediation Jobs Store ──────────────────────────────────────────
+REMEDIATION_JOBS: Dict[str, Dict[str, Any]] = {}
+
+
+def _execute_remediation_job(job_id: str, req_data: Dict[str, Any]):
+    """Background worker for automated remediation PR execution."""
+    import uuid
+    from squad_a.remediation.git_ops import apply_finding_patches, generate_branch_name
+    from squad_a.remediation.pr_description import generate_pr_content
+    from squad_a.remediation.github_client import create_github_pull_request
+
+    job = REMEDIATION_JOBS[job_id]
+
+    repo_url = req_data.get("repo_url") or ""
+    target_path = req_data.get("target_path") or ""
+    findings = req_data.get("findings") or []
+    finding_ids = set(req_data.get("finding_ids") or [])
+    grouping = req_data.get("grouping") or "per_file"
+    github_token = req_data.get("github_token")
+
+    # Filter findings if finding_ids provided
+    if finding_ids:
+        findings = [f for f in findings if f.get("id") in finding_ids or f"{f.get('file')}:{f.get('line')}" in finding_ids]
+
+    if not findings:
+        job["status"] = "failed"
+        job["error"] = "No scannable findings selected for remediation."
+        return
+
+    try:
+        # Phase 1: Cloning / Setting up local repo workspace
+        job["status"] = "cloning"
+        temp_dir = None
+
+        if repo_url and (repo_url.startswith("http://") or repo_url.startswith("https://") or repo_url.startswith("git@")):
+            temp_dir = tempfile.mkdtemp(prefix="ecdat_rem_")
+            git_bin = shutil.which("git") or "git"
+            repo_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
+            clone_target = os.path.join(temp_dir, repo_name)
+            subprocess.run(
+                [git_bin, "clone", "--depth", "1", "--single-branch", "--no-tags", repo_url, clone_target],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            work_dir = clone_target
+        elif target_path and os.path.isdir(target_path):
+            work_dir = target_path
+        else:
+            # Fallback mock directory creation if no live repo URL provided
+            temp_dir = tempfile.mkdtemp(prefix="ecdat_rem_mock_")
+            work_dir = temp_dir
+            # Create stub files for findings
+            for f in findings:
+                fpath = os.path.join(work_dir, f.get("file", "app.py"))
+                os.makedirs(os.path.dirname(fpath), exist_ok=True)
+                if not os.path.exists(fpath):
+                    with open(fpath, "w", encoding="utf-8") as fh:
+                        fh.write("# ECDAT target stub\n" + (f.get("original_snippet") or "import hashlib\nmd5 = hashlib.md5()\n"))
+
+            # Init git in mock dir
+            git_bin = shutil.which("git") or "git"
+            subprocess.run([git_bin, "init"], cwd=work_dir, capture_output=True, check=True)
+            subprocess.run([git_bin, "config", "user.name", "ECDAT Remediation Bot"], cwd=work_dir, capture_output=True)
+            subprocess.run([git_bin, "config", "user.email", "bot@ecdat.local"], cwd=work_dir, capture_output=True)
+            subprocess.run([git_bin, "add", "."], cwd=work_dir, capture_output=True, check=True)
+            subprocess.run([git_bin, "commit", "-m", "initial"], cwd=work_dir, capture_output=True, check=True)
+            repo_url = repo_url or "https://github.com/ecdat-demo/target-repository"
+
+        # Phase 2: Patching & Validation
+        job["status"] = "patching"
+        branch_name = generate_branch_name(findings)
+
+        # Apply patches + line drift protection + patch_validator
+        results, committed_files = apply_finding_patches(work_dir, findings, branch_name)
+        job["results"] = results
+
+        job["status"] = "validating"
+        # validation completed inside apply_finding_patches per-file
+
+        # Phase 3: Pushing & Creating PR
+        job["status"] = "pushing"
+        job["status"] = "opening_pr"
+
+        pr_content = generate_pr_content(findings, grouping=grouping)
+        pr_result = create_github_pull_request(
+            repo_dir=work_dir,
+            github_url=repo_url,
+            branch_name=branch_name,
+            title=pr_content["title"],
+            body=pr_content["body"],
+            github_token=github_token,
+        )
+
+        job["status"] = "done"
+        job["pr_url"] = pr_result.get("pr_url")
+        job["prs"] = [pr_result]
+        logger.info("remediation job %s completed successfully → %s", job_id, job["pr_url"])
+
+    except Exception as exc:
+        logger.error("remediation job %s failed: %s", job_id, exc)
+        job["status"] = "failed"
+        job["error"] = str(exc)
+    finally:
+        if temp_dir and os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+from fastapi import BackgroundTasks
+
+
+@app.post("/api/remediate")
+def start_remediation_job(req: RemediateRequest, background_tasks: BackgroundTasks):
+    """Spawns an automated remediation PR creation job as a background process."""
+    import uuid
+
+    job_id = str(uuid.uuid4())[:12]
+    REMEDIATION_JOBS[job_id] = {
+        "job_id": job_id,
+        "status": "queued",
+        "stage": "cloning",
+        "pr_url": None,
+        "prs": [],
+        "results": [],
+        "error": None,
+        "created_at": time.time(),
+    }
+
+    req_data = req.dict()
+    background_tasks.add_task(_execute_remediation_job, job_id, req_data)
+    logger.info("remediation job queued → %s (grouping=%s)", job_id, req.grouping)
+
+    return {"success": True, "job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/remediate/status/{job_id}")
+def get_remediation_job_status(job_id: str):
+    """Returns real-time execution status for a remediation job."""
+    if job_id not in REMEDIATION_JOBS:
+        raise HTTPException(status_code=404, detail=f"Remediation job not found: {job_id}")
+
+    return {"success": True, "data": REMEDIATION_JOBS[job_id]}
+
+
 @app.post("/api/cbom")
 def generate_cbom(req: CbomRequest):
     """Export CycloneDX 1.6 Cryptography Bill of Materials (CBOM) JSON."""

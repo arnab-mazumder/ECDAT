@@ -2,7 +2,7 @@
 
 import React from "react";
 import Card from "@/components/ui/Card";
-import { SlidersHorizontal, AlertTriangle, Info, ShieldAlert } from "lucide-react";
+import { SlidersHorizontal, AlertTriangle, Info, ShieldAlert, GitPullRequest } from "lucide-react";
 
 export default function RiskCard({ stats }) {
   const cards = [
@@ -39,6 +39,21 @@ export default function RiskCard({ stats }) {
       ),
       icon: ShieldAlert,
       iconColor: "text-critical-icon",
+    },
+    {
+      title: "PQC REMEDIATION",
+      customValue: (
+        <div className="flex items-baseline gap-1">
+          <span className="text-stat-value" style={{ color: "#059669", fontWeight: 700 }}>
+            {stats.remediationReady ?? stats.totalFindings ?? 0}
+          </span>
+          <span className="text-risk-max" style={{ marginLeft: 4 }}>
+            PQC Fixes Ready
+          </span>
+        </div>
+      ),
+      icon: GitPullRequest,
+      iconColor: "text-muted",
     },
   ];
 

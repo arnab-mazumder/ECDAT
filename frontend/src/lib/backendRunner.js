@@ -73,6 +73,23 @@ export async function runBackendCommand(command, args = [], stdinData = null) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ path: args[0], content: stdinData || "" }),
         });
+      } else if (command === "remediate") {
+        endpoint = `${baseUrl}/api/remediate`;
+        let payload = {};
+        if (stdinData) {
+          try { payload = JSON.parse(stdinData); } catch (e) {}
+        } else if (args[0]) {
+          try { payload = typeof args[0] === "string" ? JSON.parse(args[0]) : args[0]; } catch (e) {}
+        }
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else if (command === "remediate_status") {
+        const jobId = args[0];
+        endpoint = `${baseUrl}/api/remediate/status/${jobId}`;
+        res = await fetch(endpoint, { method: "GET" });
       }
     if (res === undefined) {
       throw new Error(`Unsupported backend command: ${command}`);
