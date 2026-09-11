@@ -2,8 +2,11 @@ import "./globals.css";
 import Sidebar from "@/components/layout/Sidebar";
 
 export const metadata = {
-  title: "ECDAT - Enterprise Cryptographic Discovery & Analysis Tool",
-  description: "Overview of your cryptographic inventory and quantum readiness.",
+  title: "Omnicipher - Enterprise Cryptographic Discovery & Analysis Tool",
+  description: "Enterprise Cryptographic Discovery & Analysis Tool",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }) {
