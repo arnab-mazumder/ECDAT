@@ -6,6 +6,7 @@ import { LayoutGrid, PlusCircle } from "lucide-react";
 import Header from "@/components/layout/Header";
 import RiskCard from "@/features/dashboard/components/RiskCard";
 import RiskDistribution from "@/features/dashboard/components/RiskDistribution";
+import MoscaSandbox from "@/features/dashboard/components/MoscaSandbox";
 import PriorityFindings from "@/features/dashboard/components/PriorityFindings";
 import "@/features/dashboard/dashboard.css";
 
@@ -91,7 +92,10 @@ export default function DashboardPage() {
         latestScan={data.latestScan}
       />
 
-      {/* Row 3: Highest Priority Findings Table */}
+      {/* Row 3: Mosca's Theorem Risk Inequality Sandbox */}
+      <MoscaSandbox />
+
+      {/* Row 4: Highest Priority Findings Table */}
       <PriorityFindings findings={data.priorityFindings} />
     </div>
   );
