@@ -129,7 +129,7 @@ export default function FindingsTable({
       <table className="findings-table">
         <thead>
           <tr>
-            <th style={{ width: 36, textAlign: "center" }}>
+            <th style={{ textAlign: "center" }}>
               <input
                 type="checkbox"
                 checked={isAllSelected}
@@ -200,7 +200,10 @@ export default function FindingsTable({
                   {finding.riskScore}
                 </td>
 
-                <td className="recommendation-cell">
+                <td
+                  className="recommendation-cell"
+                  title={finding.recommendation?.rationale || finding.recommendation?.algorithm || ""}
+                >
                   {finding.recommendation?.rationale || finding.recommendation?.algorithm || "-"}
                 </td>
 

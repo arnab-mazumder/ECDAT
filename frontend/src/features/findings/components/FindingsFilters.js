@@ -1,5 +1,7 @@
 "use client";
 
+import { Search } from "lucide-react";
+
 export default function FindingsFilters({
   search,
   setSearch,
@@ -16,7 +18,7 @@ export default function FindingsFilters({
     <div className="findings-filters">
 
       <div className="findings-search">
-        <span className="search-icon">⌕</span>
+        <Search size={14} className="search-icon" />
 
         <input
           type="text"
