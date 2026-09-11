@@ -7,8 +7,14 @@ Squad B's backend imports run_pipeline() and run_pipeline_from_github()
 directly as Python functions — do not rename them without telling Squad B.
 """
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from squad_a.scanner.python_scanner import scan_python
 from squad_a.scanner.java_scanner import scan_java
+from squad_a.scanner.js_scanner import scan_js
+from squad_a.scanner.go_scanner import scan_go
+from squad_a.scanner.c_scanner import scan_c
+from squad_a.scanner.config_scanner import scan_config
 from squad_a.scanner.github_fetcher import clone_and_get_path
 from squad_a.artifacts.cert_parser import scan_certs
 from squad_a.risk_engine.mosca_scorer import score_findings
@@ -24,12 +30,39 @@ def run_pipeline(target_path: str) -> dict:
     {"findings": [...], "readiness_score": int}
     Called directly by Squad B's backend — no CLI wrapper needed.
     """
-    # 1. Execute scanners & parsers
-    py_findings = scan_python(target_path)
-    java_findings = scan_java(target_path)
-    cert_findings = scan_certs(target_path)
+    # 1. Execute all scanners in parallel (they walk the filesystem independently)
+    scanners = {
+        "python": scan_python,
+        "java":   scan_java,
+        "js":     scan_js,
+        "go":     scan_go,
+        "c":      scan_c,
+        "config": scan_config,
+        "certs":  scan_certs,
+    }
 
-    raw_findings = py_findings + java_findings + cert_findings
+    results = {}
+    with ThreadPoolExecutor(max_workers=len(scanners)) as executor:
+        future_to_name = {
+            executor.submit(fn, target_path): name
+            for name, fn in scanners.items()
+        }
+        for future in as_completed(future_to_name):
+            name = future_to_name[future]
+            try:
+                results[name] = future.result()
+            except Exception as exc:  # noqa: BLE001
+                results[name] = []  # one failing scanner never blocks the rest
+
+    raw_findings = (
+        results.get("python", []) +
+        results.get("java",   []) +
+        results.get("js",     []) +
+        results.get("go",     []) +
+        results.get("c",      []) +
+        results.get("config", []) +
+        results.get("certs",  [])
+    )
 
     # 2. Risk scoring (Mosca's Algorithm)
     scored_findings = score_findings(raw_findings)

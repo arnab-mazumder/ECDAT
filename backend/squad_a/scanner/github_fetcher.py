@@ -30,9 +30,9 @@ def clone_and_get_path(url: str):
 
     temp_dir = tempfile.mkdtemp(prefix="ecdat_repo_")
     try:
-        # Clone shallowly
-        cmd = ["git", "clone", "--depth", str(CLONE_DEPTH), url, temp_dir]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+        # Clone shallowly with single-branch and no-tags for maximum speed
+        cmd = ["git", "clone", "--depth", "1", "--single-branch", "--no-tags", url, temp_dir]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=300)
         
         if result.returncode != 0:
             raise RuntimeError(f"Git clone failed: {result.stderr.strip() or result.stdout.strip()}")

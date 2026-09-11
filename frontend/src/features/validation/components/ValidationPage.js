@@ -124,7 +124,7 @@ export default function ValidationPage() {
     return (
       <div className="validation-page" style={{ textAlign: "center", paddingTop: 80 }}>
         <RefreshCw size={32} className="animate-spin" style={{ margin: "0 auto 16px", color: "#64748b" }} />
-        <h2 style={{ fontSize: 18, color: "#475569" }}>Loading Real Backend Validation Data...</h2>
+        <h2 style={{ fontSize: 18, color: "#475569" }}>Loading Validation Data...</h2>
       </div>
     );
   }
@@ -196,8 +196,8 @@ export default function ValidationPage() {
             {runningScan
               ? "Scanning..."
               : scanComplete || validated
-              ? "Scan Complete"
-              : "Run Validation Scan"}
+                ? "Scan Complete"
+                : "Run Validation Scan"}
           </button>
         </div>
       </div>
@@ -220,14 +220,14 @@ export default function ValidationPage() {
                     activeDiffIndex === idx
                       ? undefined
                       : diff.before.severity === "Critical"
-                      ? "#fef2f2"
-                      : "#fffbeb",
+                        ? "#fef2f2"
+                        : "#fffbeb",
                   color:
                     activeDiffIndex === idx
                       ? undefined
                       : diff.before.severity === "Critical"
-                      ? "#dc2626"
-                      : "#d97706",
+                        ? "#dc2626"
+                        : "#d97706",
                 }}
               >
                 {diff.before.severity}
@@ -428,11 +428,10 @@ export default function ValidationPage() {
               Active Validation & Compliance Checks
             </div>
             <span
-              className={`val-status-badge ${
-                validated || valData.compliance_status === "Compliant"
+              className={`val-status-badge ${validated || valData.compliance_status === "Compliant"
                   ? "badge-passed"
                   : "badge-warning"
-              }`}
+                }`}
             >
               {validated ? "Compliant" : valData.compliance_status || "Evaluating..."}
             </span>
@@ -460,13 +459,12 @@ export default function ValidationPage() {
                     </td>
                     <td>
                       <span
-                        className={`val-status-badge ${
-                          currentStatus === "Passed"
+                        className={`val-status-badge ${currentStatus === "Passed"
                             ? "badge-passed"
                             : currentStatus === "Warning"
-                            ? "badge-warning"
-                            : "badge-failed"
-                        }`}
+                              ? "badge-warning"
+                              : "badge-failed"
+                          }`}
                       >
                         {currentStatus === "Passed" ? (
                           <CheckCircle2 size={12} style={{ marginRight: 4 }} />

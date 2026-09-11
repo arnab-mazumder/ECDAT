@@ -7,11 +7,12 @@ import os
 import ast
 import re
 from pathlib import Path
+from squad_a.config import IGNORE_SCAN_DIRS
 from squad_a.scanner.signatures import SIGNATURES
 from squad_a.schema import create_finding
 
 
-IGNORE_DIRS = {".git", "venv", ".venv", "node_modules", "__pycache__", ".pytest_cache", ".gemini", "brain"}
+IGNORE_DIRS = IGNORE_SCAN_DIRS
 
 
 def _extract_keysize_from_line(line: str, algorithm: str) -> int | None:
@@ -27,10 +28,9 @@ def _extract_keysize_from_line(line: str, algorithm: str) -> int | None:
     return None
 
 
-def scan_python(target_path: str) -> list[dict]:
+def scan_python(target_path: str, file_list: list = None) -> list[dict]:
     """
-    Walks target_path recursively, finds .py files, detects crypto API usage
-    matching signatures.py, returns list of findings matching schema.py.
+    Walks target_path recursively or uses pre-collected file_list to detect crypto usage.
     """
     findings = []
     target_dir = Path(target_path).resolve()
@@ -38,10 +38,12 @@ def scan_python(target_path: str) -> list[dict]:
     if not target_dir.exists():
         return findings
 
-    py_files = []
-    if target_dir.is_file() and target_dir.suffix == ".py":
-        py_files.append(target_dir)
+    if file_list is not None:
+        py_files = [Path(f) if not isinstance(f, Path) else f for f in file_list]
+    elif target_dir.is_file() and target_dir.suffix == ".py":
+        py_files = [target_dir]
     else:
+        py_files = []
         for root, dirs, files in os.walk(target_dir):
             dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
             for f in files:

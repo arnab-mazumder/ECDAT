@@ -23,6 +23,10 @@ const PIPELINE_STEPS = [
   { id: "pqc", title: "NIST FIPS PQC recommendations" },
 ];
 
+// Module-level guard — persists across React 18 Strict Mode unmount/remount
+// cycles so the scan only fires exactly once per page visit.
+let _scanFired = false;
+
 export default function LiveScanMonitor({
   repoName = "repository",
   targetFile = null,
@@ -50,6 +54,8 @@ export default function LiveScanMonitor({
   };
 
   useEffect(() => {
+    if (_scanFired) return;
+    _scanFired = true;
     let cancelled = false;
 
     async function runScan() {
@@ -151,6 +157,9 @@ export default function LiveScanMonitor({
 
     return () => {
       cancelled = true;
+      // Reset module guard when component unmounts so a fresh
+      // navigation back to the scan page can trigger a new scan.
+      _scanFired = false;
     };
   }, []);
 

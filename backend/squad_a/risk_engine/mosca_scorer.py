@@ -57,9 +57,9 @@ def score_findings(findings: list[dict]) -> list[dict]:
 
         # 4. Classical Vulnerability Boost
         classical_boost = 0
-        if algorithm in ("MD5", "DES", "RC4", "SSLV3_TLS10_11"):
-            classical_boost = 30  # Already broken classically
-        elif algorithm in ("SHA1", "3DES"):
+        if any(b in algorithm for b in ("MD5", "DES", "RC4", "SSLV3", "MD2", "MD4", "NULL", "BLOWFISH", "CAST5", "IDEA", "RC2")):
+            classical_boost = 30  # Broken classically or 64-bit key size
+        elif any(b in algorithm for b in ("SHA1", "3DES", "RIPEMD", "PBE")):
             classical_boost = 20
         elif algorithm == "RSA" and key_size and key_size < 2048:
             classical_boost = 25

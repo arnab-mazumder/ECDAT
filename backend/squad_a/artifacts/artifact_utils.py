@@ -6,8 +6,10 @@ File-type detection helpers for certificate/key artifact scanning.
 import os
 from pathlib import Path
 
+from squad_a.config import IGNORE_SCAN_DIRS
+
 CERT_EXTENSIONS = {".pem", ".key", ".crt", ".cer", ".jks", ".p12"}
-IGNORE_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__", ".gemini", "brain"}
+IGNORE_DIRS = IGNORE_SCAN_DIRS
 
 
 def find_cert_files(target_path: str) -> list[str]:

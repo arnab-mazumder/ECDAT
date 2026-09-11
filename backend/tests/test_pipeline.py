@@ -2,13 +2,16 @@
 SHARED — integration test running the full pipeline end-to-end.
 """
 
+from pathlib import Path
 from squad_a.pipeline import run_pipeline, recalculate_readiness
 from squad_a.artifacts.cert_parser import scan_certs
 from squad_a.risk_engine.mosca_scorer import score_findings
 
+BASE_DIR = Path(__file__).parent
+
 
 def test_pipeline_vulnerable_python_repo():
-    result = run_pipeline("tests/test_repos/repo1_vulnerable_python")
+    result = run_pipeline(str(BASE_DIR / "test_repos/repo1_vulnerable_python"))
     assert "findings" in result
     assert "readiness_score" in result
     
@@ -30,7 +33,7 @@ def test_pipeline_vulnerable_python_repo():
 
 
 def test_pipeline_vulnerable_java_repo():
-    result = run_pipeline("tests/test_repos/repo2_vulnerable_java")
+    result = run_pipeline(str(BASE_DIR / "test_repos/repo2_vulnerable_java"))
     findings = result["findings"]
     assert len(findings) >= 3  # MD5, DES, RSA 1024, TLS 1.0
 
@@ -41,7 +44,7 @@ def test_pipeline_vulnerable_java_repo():
 
 
 def test_pipeline_clean_repo():
-    result = run_pipeline("tests/test_repos/repo3_clean")
+    result = run_pipeline(str(BASE_DIR / "test_repos/repo3_clean"))
     findings = result["findings"]
     # Clean repo uses SHA-256, AES, RSA 4096 (which should not trigger weak RSA)
     assert len(findings) == 0
@@ -49,7 +52,7 @@ def test_pipeline_clean_repo():
 
 
 def test_cert_parser():
-    weak_findings = scan_certs("tests/sample_certs")
+    weak_findings = scan_certs(str(BASE_DIR / "sample_certs"))
     assert len(weak_findings) >= 1
     
     cert_finding = weak_findings[0]
@@ -58,7 +61,7 @@ def test_cert_parser():
 
 
 def test_readiness_recalculation_toggle():
-    result = run_pipeline("tests/test_repos/repo1_vulnerable_python")
+    result = run_pipeline(str(BASE_DIR / "test_repos/repo1_vulnerable_python"))
     findings = result["findings"]
     
     initial_score = recalculate_readiness(findings)
@@ -79,4 +82,5 @@ if __name__ == "__main__":
     test_cert_parser()
     test_readiness_recalculation_toggle()
     print("All ECDAT Squad A tests passed successfully!")
+
 

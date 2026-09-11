@@ -18,6 +18,7 @@ if current_dir not in sys.path:
 
 from squad_a.pipeline import run_pipeline, run_pipeline_from_github, recalculate_readiness
 from squad_a.cbom_exporter import export_to_cyclonedx_json
+from squad_a.config import IGNORE_SCAN_DIRS
 
 
 # ──────────────────────────────────────────────────────────
@@ -37,8 +38,7 @@ def build_file_tree_and_contents(scan_root, findings):
 
     files_map = {}
 
-    IGNORE_DIRS = {".git", "node_modules", "venv", "__pycache__", "build",
-                  "dist", ".idea", ".vscode", "target", ".gradle"}
+    IGNORE_DIRS = IGNORE_SCAN_DIRS
 
     def add_to_tree(rel_path, children_list):
         """Recursively build tree node."""
@@ -66,6 +66,15 @@ def build_file_tree_and_contents(scan_root, findings):
                     "language": (
                         "python" if part.endswith(".py")
                         else "java" if part.endswith(".java")
+                        else "javascript" if part.endswith((".js", ".jsx", ".mjs"))
+                        else "typescript" if part.endswith((".ts", ".tsx"))
+                        else "go" if part.endswith(".go")
+                        else "cpp" if part.endswith((".cpp", ".cc", ".cxx", ".h", ".hpp"))
+                        else "c" if part.endswith(".c")
+                        else "yaml" if part.endswith((".yaml", ".yml"))
+                        else "toml" if part.endswith(".toml")
+                        else "json" if part.endswith(".json")
+                        else "dockerfile" if part.lower() == "dockerfile" or part.endswith(".dockerfile")
                         else "plaintext"
                     ),
                     "hasIssue": matching_finding is not None,
@@ -100,18 +109,29 @@ def build_file_tree_and_contents(scan_root, findings):
 
             add_to_tree(rel_path, tree_root["children"])
 
-            try:
-                with open(full_path, "r", encoding="utf-8", errors="replace") as fh:
-                    content = fh.read()
-            except Exception:
-                content = ""
-
             norm_rel = rel_path.replace("\\", "/")
             matching_finding = next(
                 (fn for fn in findings
                  if fn["file"].replace("\\", "/") == norm_rel),
                 None
             )
+
+            # Skip loading raw string content for heavy binary / asset extensions unless file has an issue
+            SKIP_EXTS = {
+                ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".jar", ".class",
+                ".exe", ".dll", ".so", ".dylib", ".tar", ".gz", ".7z", ".mp4",
+                ".mov", ".avi", ".woff", ".woff2", ".ttf", ".eot", ".ico", ".iso",
+                ".bin", ".dat", ".db", ".sqlite", ".pyc", ".pyo", ".map"
+            }
+            ext = os.path.splitext(fname)[1].lower()
+
+            content = ""
+            if matching_finding is not None or (ext not in SKIP_EXTS and os.path.getsize(full_path) < 500 * 1024):
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="replace") as fh:
+                        content = fh.read(500 * 1024)  # Read up to 500 KB per file
+                except Exception:
+                    content = ""
 
             # Key = relative path with forward slashes (unique)
             files_map[norm_rel] = {
@@ -120,6 +140,7 @@ def build_file_tree_and_contents(scan_root, findings):
                 "language": (
                     "Python" if fname.endswith(".py")
                     else "Java" if fname.endswith(".java")
+                    else "JavaScript" if fname.endswith((".js", ".jsx", ".ts", ".tsx"))
                     else "Plaintext"
                 ),
                 "encoding": "UTF-8",
@@ -196,20 +217,26 @@ def handle_scan_zip(zip_path):
 
 def handle_scan_github(github_url):
     """Clone GitHub repo, run pipeline, build workspace data."""
-    from squad_a.scanner.github_fetcher import clone_and_get_path
-    import contextlib
-
     temp_dir = tempfile.mkdtemp(prefix="ecdat_github_")
 
-    # We'll clone manually to keep files around for workspace
     import subprocess
     repo_name = github_url.rstrip("/").split("/")[-1].replace(".git", "")
     clone_target = os.path.join(temp_dir, repo_name)
-    subprocess.run(
-        ["git", "clone", "--depth", "1", github_url, clone_target],
-        check=True,
-        capture_output=True
-    )
+    
+    try:
+        subprocess.run(
+            ["git", "clone", "--depth", "1", "--single-branch", "--no-tags", github_url, clone_target],
+            check=True,
+            capture_output=True,
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise ValueError("Git clone timed out after 5 minutes. The repository may be exceptionally large or your network connection is slow.")
+    except subprocess.CalledProcessError as e:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        err_msg = e.stderr.decode("utf-8", errors="replace") if e.stderr else str(e)
+        raise ValueError(f"Git clone failed: {err_msg.strip()}")
 
     pipeline_result = run_pipeline(clone_target)
     findings = pipeline_result["findings"]

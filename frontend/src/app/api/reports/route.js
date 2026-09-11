@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
-import { runBackendCommand } from "@/lib/backendRunner";
 
 export async function GET() {
   try {
-    let scanData = global._ecdatActiveScan;
+    const scanData = global._ecdatActiveScan;
+
     if (!scanData) {
-      const result = await runBackendCommand("scan", []);
-      scanData = {
-        ...result,
-        timestamp: new Date().toISOString(),
-        target: "repo1_vulnerable_python",
-      };
-      global._ecdatActiveScan = scanData;
+      return NextResponse.json(
+        { success: false, error: "No active scan. Go to New Scan and upload a ZIP file or enter a GitHub URL." },
+        { status: 404 }
+      );
     }
 
     const findings = scanData.findings || [];
@@ -20,33 +17,16 @@ export async function GET() {
     const reports = [
       {
         id: "rep-001",
-        name: scanData.target || "banking-system",
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        name: scanData.target || "scanned-repository",
+        date: new Date(scanData.timestamp || Date.now()).toLocaleDateString("en-US", {
+          month: "short", day: "numeric", year: "numeric",
+        }),
         findings: findings.length,
-        severity: readiness < 60 ? "Critical" : readiness < 80 ? "Medium" : "Low",
+        severity: readiness < 60 ? "Critical" : readiness < 80 ? "High" : "Low",
         status: "Completed",
         readinessScore: readiness,
         cyclonedxVersion: "1.6 CBOM",
-      },
-      {
-        id: "rep-002",
-        name: "payment-gateway-service",
-        date: "Aug 24, 2026",
-        findings: 14,
-        severity: "High",
-        status: "Completed",
-        readinessScore: 68,
-        cyclonedxVersion: "1.6 CBOM",
-      },
-      {
-        id: "rep-003",
-        name: "auth-identity-provider",
-        date: "Aug 19, 2026",
-        findings: 3,
-        severity: "Low",
-        status: "Completed",
-        readinessScore: 92,
-        cyclonedxVersion: "1.6 CBOM",
+        filesScanned: Object.keys(scanData.fileContents || {}).length,
       },
     ];
 
@@ -62,3 +42,4 @@ export async function GET() {
     );
   }
 }
+

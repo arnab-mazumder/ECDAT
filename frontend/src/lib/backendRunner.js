@@ -2,16 +2,94 @@ import { execFile } from "child_process";
 import path from "path";
 import fs from "fs";
 
-// Determine path to backend/run_bridge.py
+// Environment-aware backend runner.
+// Set BACKEND_URL=http://localhost:8000 (in .env.local) to route all calls
+// through the FastAPI server.py — requests will appear in its console.
+// Leave blank to execute Python locally via child process (no server needed).
+const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "";
 const BACKEND_DIR = path.resolve(process.cwd(), "..", "backend");
 const BRIDGE_SCRIPT = path.join(BACKEND_DIR, "run_bridge.py");
 
 export async function runBackendCommand(command, args = [], stdinData = null) {
+  // ── Mode 1: FastAPI HTTP Server ─────────────────────────────────────────
+  // Active when BACKEND_URL is set (e.g. http://localhost:8000).
+  // Every request appears in the server.py console.
+  if (BACKEND_URL) {
+    const baseUrl = BACKEND_URL.replace(/\/$/, "");
+    console.log(`[backendRunner] HTTP → ${command}`, args[0] ? `(${path.basename(String(args[0]))})` : "");
+
+    try {
+      let endpoint, res;
+
+      if (command === "scan_zip") {
+        // Multipart upload → POST /api/scan/upload
+        endpoint = `${baseUrl}/api/scan/upload`;
+        const fileBytes = fs.readFileSync(args[0]);
+        const blob = new Blob([fileBytes]);
+        const form = new FormData();
+        form.append("file", blob, path.basename(args[0]));
+        res = await fetch(endpoint, { method: "POST", body: form });
+
+      } else if (command === "scan_github") {
+        endpoint = `${baseUrl}/api/scan/github`;
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: args[0] }),
+        });
+
+      } else if (command === "scan") {
+        endpoint = `${baseUrl}/api/scan/path`;
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: args[0] }),
+        });
+
+      } else if (command === "recalculate") {
+        endpoint = `${baseUrl}/api/recalculate`;
+        const findings = stdinData
+          ? JSON.parse(stdinData)
+          : args[0] ? JSON.parse(args[0]) : [];
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ findings }),
+        });
+
+      } else if (command === "cbom") {
+        endpoint = `${baseUrl}/api/cbom`;
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: args[0] }),
+        });
+      }
+      // validation / rescan / save_file / workspace → child process (below)
+
+      if (res !== undefined) {
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`HTTP ${res.status} from backend: ${errorText}`);
+        }
+        const json = await res.json();
+        console.log(`[backendRunner] HTTP ← ${command} OK`);
+        return json;
+      }
+    } catch (err) {
+      console.error(`[backendRunner] HTTP error (${command}):`, err.message);
+      throw err;
+    }
+  }
+
+  // ── Mode 2: Local Python Child Process ──────────────────────────────────
+  // Default when no BACKEND_URL set, or for commands not handled by HTTP mode.
   return new Promise((resolve, reject) => {
-    // Fallback if backend bridge script doesn't exist
     if (!fs.existsSync(BRIDGE_SCRIPT)) {
       return reject(new Error(`Backend bridge script not found at ${BRIDGE_SCRIPT}`));
     }
+
+    console.log(`[backendRunner] child_process → ${command}`, args[0] ? `(${path.basename(String(args[0]))})` : "");
 
     const processEnv = {
       ...process.env,
@@ -19,21 +97,27 @@ export async function runBackendCommand(command, args = [], stdinData = null) {
     };
 
     const cmdArgs = [BRIDGE_SCRIPT, command, ...args];
-    const child = execFile("python", cmdArgs, { env: processEnv, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`runBackendCommand error: ${error.message}`);
-        console.error(`stderr: ${stderr}`);
-        return reject(error);
-      }
+    const child = execFile(
+      "python3",
+      cmdArgs,
+      { env: processEnv, maxBuffer: 500 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`[backendRunner] child_process error (${command}): ${error.message}`);
+          if (stderr) console.error(`stderr: ${stderr}`);
+          return reject(error);
+        }
 
-      try {
-        const json = JSON.parse(stdout.trim());
-        resolve(json);
-      } catch (parseErr) {
-        console.error("Failed to parse JSON output from python bridge:", stdout);
-        reject(parseErr);
+        try {
+          const json = JSON.parse(stdout.trim());
+          console.log(`[backendRunner] child_process ← ${command} OK`);
+          resolve(json);
+        } catch (parseErr) {
+          console.error("[backendRunner] Failed to parse JSON from bridge:", stdout.slice(0, 300));
+          reject(parseErr);
+        }
       }
-    });
+    );
 
     if (stdinData && child.stdin) {
       child.stdin.write(stdinData);
