@@ -1,10 +1,10 @@
-13:29:52  INFO      ============================================================
-13:29:52  INFO        ECDAT Backend API  —  http://0.0.0.0:8000
-13:29:52  INFO        Docs               →  http://0.0.0.0:8000/docs
-13:29:52  INFO      ============================================================
-INFO:     Started server process [16024]
+14:04:38  INFO      ============================================================
+14:04:38  INFO        ECDAT Backend API  —  http://0.0.0.0:8000
+14:04:38  INFO        Docs               →  http://0.0.0.0:8000/docs
+14:04:38  INFO      ============================================================
+INFO:     Started server process [18578]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-13:29:54  INFO      GET  /health                         →  [32m200[0m  (2 ms)
-INFO:     127.0.0.1:58852 - "GET /health HTTP/1.1" 200 OK
+14:04:40  INFO      GET  /health                         →  [32m200[0m  (6 ms)
+INFO:     127.0.0.1:44188 - "GET /health HTTP/1.1" 200 OK

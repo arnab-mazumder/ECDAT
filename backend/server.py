@@ -90,6 +90,11 @@ class RecalculateRequest(BaseModel):
     findings: List[Dict[str, Any]]
 
 
+class CbomRequest(BaseModel):
+    findings: Optional[List[Dict[str, Any]]] = None
+    path: Optional[str] = None
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/health")
 @app.get("/")
@@ -198,15 +203,24 @@ def recalculate(req: RecalculateRequest):
 
 
 @app.post("/api/cbom")
-def generate_cbom(req: ScanPathRequest):
+def generate_cbom(req: CbomRequest):
     """Export CycloneDX 1.6 Cryptography Bill of Materials (CBOM) JSON."""
-    logger.info("cbom  →  %s", req.path)
-    if not os.path.exists(req.path):
-        raise HTTPException(status_code=404, detail=f"Path not found: {req.path}")
-
-    scan_res = run_pipeline(req.path)
-    cbom = export_to_cyclonedx_json(scan_res["findings"], req.path)
-    return cbom
+    logger.info("cbom  →  findings=%s, path=%s", len(req.findings) if req.findings else 0, req.path)
+    try:
+        import json as py_json
+        if req.findings is not None:
+            cbom_str = export_to_cyclonedx_json({"findings": req.findings, "readiness_score": 0})
+            return py_json.loads(cbom_str)
+        elif req.path and os.path.exists(req.path):
+            scan_res = run_pipeline(req.path)
+            cbom_str = export_to_cyclonedx_json(scan_res)
+            return py_json.loads(cbom_str)
+        else:
+            cbom_str = export_to_cyclonedx_json({"findings": [], "readiness_score": 100})
+            return py_json.loads(cbom_str)
+    except Exception as e:
+        logger.error("cbom error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

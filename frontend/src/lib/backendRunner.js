@@ -61,10 +61,16 @@ export async function runBackendCommand(command, args = [], stdinData = null) {
 
       } else if (command === "cbom") {
         endpoint = `${baseUrl}/api/cbom`;
+        let findings = null;
+        if (stdinData) {
+          try { findings = JSON.parse(stdinData); } catch (e) {}
+        } else if (args[1]) {
+          try { findings = JSON.parse(args[1]); } catch (e) {}
+        }
         res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: args[0] }),
+          body: JSON.stringify({ findings, path: args[0] || "" }),
         });
       }
       // validation / rescan / save_file / workspace → child process (below)
