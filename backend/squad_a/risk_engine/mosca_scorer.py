@@ -58,6 +58,10 @@ def score_findings(findings: list[dict]) -> list[dict]:
         artifact_type = finding.get("artifact_type", "source_code")
         algorithm = finding.get("algorithm", "").upper()
         key_size = finding.get("key_size")
+        try:
+            key_size = int(key_size) if key_size is not None else None
+        except (TypeError, ValueError):
+            key_size = None
         snippet = finding.get("original_snippet") or finding.get("original_code") or ""
 
         # 1. Determine X (Data Lifetime) and Y (Migration Time)
@@ -77,7 +81,25 @@ def score_findings(findings: list[dict]) -> list[dict]:
 
         # 4. Classical Vulnerability Boost
         classical_boost = 0
-        if any(b in algorithm for b in ("MD5", "DES", "RC4", "SSLV3", "MD2", "MD4", "NULL", "BLOWFISH", "CAST5", "IDEA", "RC2")):
+        classical_floor = 0
+        shor_vulnerable = any(
+            family in algorithm
+            for family in (
+                "RSA", "ECDSA", "ECDH", "ECC", "X25519", "X448",
+                "ED25519", "ED448", "DH", "DIFFIE-HELLMAN", "DIFFIEHELLMAN",
+            )
+        )
+
+        if shor_vulnerable:
+            # These public-key families rely on factoring or discrete-log
+            # assumptions that Shor's algorithm breaks.
+            classical_floor = 80
+            if "RSA" in algorithm and key_size and key_size < 1024:
+                classical_floor = 100
+        elif "MD5" in algorithm:
+            # MD5 is practically collision-broken regardless of context.
+            classical_floor = 80
+        elif any(b in algorithm for b in ("MD5", "DES", "RC4", "SSLV3", "MD2", "MD4", "NULL", "BLOWFISH", "CAST5", "IDEA", "RC2")):
             classical_boost = 30
         elif any(b in algorithm for b in ("SHA1", "3DES", "RIPEMD", "PBE")):
             classical_boost = 20
@@ -86,7 +108,7 @@ def score_findings(findings: list[dict]) -> list[dict]:
         elif algorithm == "ECDSA" and key_size and key_size < 256:
             classical_boost = 25
 
-        total_score = min(100, round(quantum_score + classical_boost))
+        total_score = min(100, max(classical_floor, round(quantum_score + classical_boost)))
         finding["risk_score"] = int(total_score)
 
         # 5. Risk Bucket Assignment

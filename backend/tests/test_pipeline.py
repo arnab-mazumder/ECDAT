@@ -6,6 +6,7 @@ from pathlib import Path
 from squad_a.pipeline import run_pipeline, recalculate_readiness
 from squad_a.artifacts.cert_parser import scan_certs
 from squad_a.risk_engine.mosca_scorer import score_findings
+from squad_a.risk_engine.readiness_score import compute_readiness
 
 BASE_DIR = Path(__file__).parent
 
@@ -49,6 +50,47 @@ def test_pipeline_clean_repo():
     # Clean repo uses SHA-256, AES, RSA 4096 (which should not trigger weak RSA)
     assert len(findings) == 0
     assert result["readiness_score"] == 100
+
+
+def test_weak_rsa_is_critical():
+    findings = score_findings([
+        {"algorithm": "RSA", "key_size": 1024, "artifact_type": "source_code", "file": "auth/token.py"},
+        {"algorithm": "RSA", "key_size": 2048, "artifact_type": "source_code", "file": "auth/token.py"},
+    ])
+
+    assert findings[0]["risk_score"] == 80
+    assert findings[0]["risk_bucket"] == "Critical"
+    assert findings[1]["risk_score"] == 80
+    assert findings[1]["risk_bucket"] == "Critical"
+
+
+def test_shor_vulnerable_public_key_families_are_critical():
+    algorithms = ("ECDSA", "ECDH/X25519", "Ed25519/Ed448", "DH", "Diffie-Hellman")
+    findings = score_findings([
+        {"algorithm": algorithm, "artifact_type": "source_code", "file": "crypto/key.py"}
+        for algorithm in algorithms
+    ])
+
+    assert all(finding["risk_score"] >= 80 for finding in findings)
+    assert all(finding["risk_bucket"] == "Critical" for finding in findings)
+
+
+def test_md5_is_critical():
+    finding = score_findings([{"algorithm": "MD5", "file": "hashing.py"}])[0]
+
+    assert finding["risk_score"] >= 80
+    assert finding["risk_bucket"] == "Critical"
+
+
+def test_readiness_is_average_of_active_risk_scores():
+    findings = [
+        {"risk_score": 48}, {"risk_score": 48}, {"risk_score": 48}, {"risk_score": 48},
+        {"risk_score": 58}, {"risk_score": 58},
+        {"risk_score": 80}, {"risk_score": 80},
+    ]
+
+    assert compute_readiness(findings) == 59
+    assert compute_readiness(findings + [{"risk_score": 100, "resolved": True}]) == 59
 
 
 def test_cert_parser():
