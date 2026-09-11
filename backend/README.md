@@ -18,29 +18,15 @@ The backend features dedicated scanner engines located in `squad_a/scanner/` and
 
 ---
 
-## 🚀 How to Run Backend CLI Commands
+## 🚀 Run the Backend API
 
-The CLI bridge script `run_bridge.py` allows direct invocation of the Python analysis engine:
+Start the FastAPI server and use its REST endpoints from the frontend:
 
-### 1. Ingest & Scan a Local Workspace / Directory
 ```bash
-python run_bridge.py scan --path /path/to/target/repository
+python server.py
 ```
 
-### 2. Scan a ZIP File Upload
-```bash
-python run_bridge.py scan_zip --path /path/to/target.zip
-```
-
-### 3. Generate CycloneDX 1.6 CBOM JSON
-```bash
-python run_bridge.py cbom --path /path/to/target/repository
-```
-
-### 4. Recalculate Quantum Readiness Score
-```bash
-python run_bridge.py recalculate --findings-json '[...]'
-```
+Interactive API documentation is available at `http://localhost:8000/docs`.
 
 ---
 

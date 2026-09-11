@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-.DS_Store
-=======
 # Node.js / Next.js
 node_modules/
 .next/
@@ -54,4 +51,3 @@ Thumbs.db
 tmp/
 ecdat_upload_*
 ecdat_zip_*
->>>>>>> a645899 (backend fixes)

@@ -1,28 +1,19 @@
-"""
-FastAPI REST API Server for ECDAT Backend Analysis Engine.
-Enables deployment as a standalone HTTP microservice (e.g., Render, Railway, AWS, DigitalOcean).
-
-Run locally:
-    python server.py
-    or: uvicorn server:app --reload --port 8000
-"""
-
 import os
 import time
 import tempfile
 import shutil
 import zipfile
 import logging
+import subprocess
 from typing import List, Dict, Any, Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from squad_a.pipeline import run_pipeline, run_pipeline_from_github, recalculate_readiness
+from squad_a.pipeline import run_pipeline, recalculate_readiness
 from squad_a.cbom_exporter import export_to_cyclonedx_json
-from run_bridge import build_file_tree_and_contents
+from squad_a.workspace import build_file_tree_and_contents
 
 # ── Logging setup ────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -95,6 +86,62 @@ class CbomRequest(BaseModel):
     path: Optional[str] = None
 
 
+class WorkspacePathRequest(BaseModel):
+    path: str
+
+
+class WorkspaceFileRequest(BaseModel):
+    path: str
+    content: str
+
+
+def scan_workspace(path: str):
+    if not path or not os.path.isdir(path):
+        raise HTTPException(status_code=404, detail=f"Workspace not found: {path}")
+    scan_res = run_pipeline(path)
+    tree, files = build_file_tree_and_contents(path, scan_res["findings"])
+    return {
+        "findings": scan_res["findings"],
+        "readiness_score": scan_res["readiness_score"],
+        "fileTree": tree,
+        "fileContents": files,
+        "extractedRoot": path,
+    }
+
+
+def clone_github_workspace(url: str):
+    """Clone a repository into a retained server workspace and scan it."""
+    url = url.strip()
+    if not (url.startswith("http://") or url.startswith("https://") or url.startswith("git@")):
+        raise ValueError(f"Invalid repository URL format: '{url}'")
+
+    git_executable = shutil.which("git")
+    if not git_executable and os.name == "nt":
+        candidate = os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "Git", "cmd", "git.exe")
+        if os.path.isfile(candidate):
+            git_executable = candidate
+    if not git_executable:
+        raise RuntimeError("Git is required for GitHub scans but was not found in the backend process PATH")
+
+    workspace_root = tempfile.mkdtemp(prefix="ecdat_github_")
+    try:
+        result = subprocess.run(
+            [git_executable, "clone", "--depth", "1", "--single-branch", "--no-tags", url, workspace_root],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=300,
+        )
+    except FileNotFoundError as error:
+        shutil.rmtree(workspace_root, ignore_errors=True)
+        raise RuntimeError(f"Git executable could not be started: {git_executable}") from error
+    if result.returncode != 0:
+        shutil.rmtree(workspace_root, ignore_errors=True)
+        raise ValueError(f"Git clone failed: {result.stderr.strip() or result.stdout.strip()}")
+
+    return scan_workspace(workspace_root)
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/health")
 @app.get("/")
@@ -140,14 +187,13 @@ def scan_github(req: GitHubScanRequest):
     """Shallow clone and scan a public GitHub repository."""
     logger.info("scan/github  →  %s", req.url)
     try:
-        from run_bridge import handle_scan_github
-        result = handle_scan_github(req.url)
+        scan_res = clone_github_workspace(req.url)
         logger.info(
             "scan/github complete  →  %d finding(s), score=%s",
-            len(result.get("findings", [])),
-            result.get("readiness_score"),
+            len(scan_res.get("findings", [])),
+            scan_res.get("readiness_score"),
         )
-        return {"success": True, **result}
+        return {"success": True, **scan_res}
     except Exception as e:
         logger.error("scan/github error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -172,26 +218,43 @@ async def scan_upload(file: UploadFile = File(...)):
         with zipfile.ZipFile(zip_path, "r") as z:
             z.extractall(extract_dir)
 
-        scan_res = run_pipeline(extract_dir)
-        tree, files = build_file_tree_and_contents(extract_dir, scan_res["findings"])
+        result = scan_workspace(extract_dir)
         logger.info(
             "scan/upload complete  →  %d finding(s), score=%s",
-            len(scan_res["findings"]),
-            scan_res["readiness_score"],
+            len(result["findings"]),
+            result["readiness_score"],
         )
-        return {
-            "success": True,
-            "target": file.filename,
-            "findings": scan_res["findings"],
-            "readiness_score": scan_res["readiness_score"],
-            "file_tree": tree,
-            "file_contents": files,
-        }
+        return {"success": True, "target": file.filename, **result}
     except Exception as e:
         logger.error("scan/upload error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+@app.post("/api/workspace/rescan")
+def rescan_workspace(req: WorkspacePathRequest):
+    """Re-run analysis and rebuild workspace data for an extracted scan root."""
+    try:
+        return {"success": True, **scan_workspace(req.path)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("workspace/rescan error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/workspace/file")
+def save_workspace_file(req: WorkspaceFileRequest):
+    """Save a file inside an extracted workspace without allowing path escape."""
+    workspace_root = os.path.realpath(os.path.dirname(req.path))
+    file_path = os.path.realpath(req.path)
+    if not os.path.isfile(os.path.join(workspace_root, os.path.basename(file_path))):
+        raise HTTPException(status_code=404, detail=f"File not found: {req.path}")
+    try:
+        with open(file_path, "w", encoding="utf-8") as file_handle:
+            file_handle.write(req.content)
+        return {"success": True, "path": file_path}
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/recalculate")

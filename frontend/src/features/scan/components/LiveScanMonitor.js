@@ -23,9 +23,14 @@ const PIPELINE_STEPS = [
   { id: "pqc", title: "NIST FIPS PQC recommendations" },
 ];
 
-// Module-level guard — persists across React 18 Strict Mode unmount/remount
-// cycles so the scan only fires exactly once per page visit.
-let _scanFired = false;
+const activeScanKeys = new Set();
+
+function getScanKey(targetFile, githubUrl) {
+  if (targetFile) {
+    return `file:${targetFile.name}:${targetFile.size}:${targetFile.lastModified}`;
+  }
+  return `github:${githubUrl}`;
+}
 
 export default function LiveScanMonitor({
   repoName = "repository",
@@ -54,9 +59,9 @@ export default function LiveScanMonitor({
   };
 
   useEffect(() => {
-    if (_scanFired) return;
-    _scanFired = true;
-    let cancelled = false;
+    const scanKey = getScanKey(targetFile, githubUrl);
+    if (activeScanKeys.has(scanKey)) return;
+    activeScanKeys.add(scanKey);
 
     async function runScan() {
       try {
@@ -88,16 +93,12 @@ export default function LiveScanMonitor({
           throw new Error("No file or GitHub URL provided");
         }
 
-        if (cancelled) return;
-
         setProgress(50);
         setCurrentStepIndex(2);
         addSeparator("─── Cryptographic Detection Engine Running ───");
         addLog("scan", "SCAN", "Executing Python AST parser on source files...");
 
         const json = await res.json();
-
-        if (cancelled) return;
 
         if (!json.success) {
           throw new Error(json.error || "Scan failed");
@@ -145,23 +146,17 @@ export default function LiveScanMonitor({
         );
         setIsCompleted(true);
       } catch (err) {
-        if (cancelled) return;
         addLog("warn", "ERROR", `Scan failed: ${err.message}`);
         setIsError(true);
         setErrorMessage(err.message);
         setProgress(100);
+      } finally {
+        activeScanKeys.delete(scanKey);
       }
     }
 
     runScan();
-
-    return () => {
-      cancelled = true;
-      // Reset module guard when component unmounts so a fresh
-      // navigation back to the scan page can trigger a new scan.
-      _scanFired = false;
-    };
-  }, []);
+  }, [githubUrl, targetFile]);
 
   // Animate progress bar before backend responds
   useEffect(() => {

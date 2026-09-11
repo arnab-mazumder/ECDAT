@@ -34,7 +34,6 @@ ECDAT--FRONTEND-AND-BACKEND/
 │   └── package.json
 │
 └── backend/                   # Pure Python Analysis Engine & REST API
-    ├── run_bridge.py          # JSON CLI bridge called by Next.js API routes
     ├── server.py              # FastAPI REST API server (for standalone deployment)
     ├── requirements.txt       # Python dependencies (cryptography, fastapi, uvicorn, etc.)
     ├── squad_a/
@@ -86,9 +85,16 @@ cd ..
 
 ## 💻 How to Run (Local Development)
 
-### 1-Command Standard Startup (Next.js Integrated Mode)
+### Start the Backend API and Frontend
 
-Start the Next.js development server:
+Start the FastAPI backend:
+
+```bash
+cd backend
+python server.py
+```
+
+Then start the Next.js development server in a second terminal:
 
 ```bash
 cd frontend
@@ -98,26 +104,9 @@ npm run dev
 Open your browser and navigate to:
 **`http://localhost:3000`**
 
-You **do not** need to start any separate backend server process locally. The Next.js API routes invoke the Python analysis engine (`backend/run_bridge.py`) automatically whenever you scan a repo or ZIP archive in the UI.
-
----
-
-### Standalone FastAPI Backend Mode (with Live Terminal Logs)
-
-If you prefer to run the Python backend engine as an independent REST API server with real-time logging for every HTTP call:
-
-1. Create `frontend/.env.local`:
+Create `frontend/.env.local`:
    ```ini
    BACKEND_URL=http://localhost:8000
-   ```
-
-2. Start both servers:
-   ```bash
-   # Terminal 1 — Start FastAPI Server (Port 8000)
-   cd backend && python3 server.py
-
-   # Terminal 2 — Start Frontend Server (Port 3000)
-   cd frontend && npm run dev
    ```
 
 - **Interactive Swagger Documentation**: `http://localhost:8000/docs`
@@ -129,23 +118,6 @@ If you prefer to run the Python backend engine as an independent REST API server
 For complete instructions on deploying ECDAT to cloud providers (**Vercel, Netlify, Render, Railway, AWS EC2, DigitalOcean**) without Docker, refer to:
 
 👉 **[DEPLOYMENT.md](file:///home/naegleria/Desktop/ECDAT--FRONTEND-AND-BACKEND/DEPLOYMENT.md)**
-
----
-
-## ⚙️ Direct CLI Usage (Optional)
-
-If you wish to run scans directly from the terminal without opening the browser:
-
-```bash
-# Scan a local directory:
-python3 backend/run_bridge.py scan --path ./backend/tests/test_repos/repo1_vulnerable_python
-
-# Scan a ZIP archive:
-python3 backend/run_bridge.py scan_zip --path /path/to/repository.zip
-
-# Generate CycloneDX CBOM JSON:
-python3 backend/run_bridge.py cbom --path ./backend/tests/test_repos/repo1_vulnerable_python
-```
 
 ---
 

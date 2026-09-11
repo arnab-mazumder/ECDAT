@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { runBackendCommand } from "@/lib/backendRunner";
-import { writeFileSync } from "fs";
 import { join } from "path";
 
 // GET: return workspace data from current scan session
@@ -48,11 +47,8 @@ export async function POST(request) {
         );
       }
 
-      // Build absolute path: extractedRoot / relative path
       const normalizedRelPath = filePath.replace(/\\/g, "/");
-      const absPath = join(extractedRoot, ...normalizedRelPath.split("/"));
-
-      writeFileSync(absPath, content, "utf-8");
+      await runBackendCommand("save_file", [join(extractedRoot, ...normalizedRelPath.split("/"))], content);
 
       // Also update in-memory file contents
       if (global._ecdatActiveScan.fileContents[normalizedRelPath]) {
