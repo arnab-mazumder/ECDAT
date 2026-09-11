@@ -1,7 +1,8 @@
 {
-  "name": "ecdat2026",
+  "name": "ecdat-frontend",
   "version": "0.1.0",
   "private": true,
+  "description": "Next.js frontend for ECDAT — Enterprise Cryptographic Discovery & Analysis Tool",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
